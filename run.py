@@ -1,0 +1,148 @@
+""" # noqa
+   ___           __________________  ___________
+  / _/__  ____  / __/ ___/  _/ __/ |/ / ___/ __/
+ / _/ _ \/ __/ _\ \/ /___/ // _//    / /__/ _/          # noqa
+/_/ \___/_/   /___/\___/___/___/_/|_/\___/___/          # noqa
+Author : Benjamin Blundell - k1803390@kcl.ac.uk
+
+run.py - an attempt to find the 3D shape from an image.
+
+To load a trained network:
+  python run.py --load checkpoint.pth.tar --image <X>
+
+  Load a checkpoint and an image (FITS) and output an
+  image and some angles.
+
+"""
+
+import torch
+import math
+import argparse
+import sys
+import os
+from net.renderer import Splat
+from util.image import save_image, load_fits
+from util.loadsave import load_checkpoint, load_model
+from util.plyobj import load_obj, load_ply, points_to_torch
+import torch.nn.functional as F
+from PIL import Image
+
+
+def _print_rotations(self, input, output):
+    """Internal function that is attached via a hook when we
+    want to see the rotations from the fc3 layer.
+    """
+    # output is a Tensor. output.data is the Tensor we are interested
+    print("Inside " + self.__class__.__name__ + " forward")
+    print("")
+    print("input: ", type(input))
+    print("input[0]: ", type(input[0]))
+    print("output: ", type(output))
+    print("")
+    print("input size:", input[0].size())
+    print("output size:", output.data.size())
+    print("output norm:", output.data.norm())
+
+    # Here we set our rotations globally which is a bit naughty
+    # but for now it's ok. Callbacks need to have something passed.
+
+
+def file_test(model, device, sigma, input_image):
+    """Test our model by making an image, printing the rotations
+    and then seeing what our model comes up with.
+    """
+    # Need to call model.eval() to set certain layers to eval mode. Ones
+    # like dropout and what not
+    with torch.no_grad():
+        model.eval()
+        model.to(device)
+
+        im = Image.open(args.imagefile)
+        if im.size != (128, 128):
+            print("Input image is not equal to 128,128")
+            sys.exit()
+        fm = torch.zeros(
+            im.size, dtype=torch.float32, requires_grad=False, device=device
+        )
+
+        for y in range(0, im.size[1]):
+            for x in range(0, im.size[0]):
+                fm[y][x] = im.getpixel((x, y)) / 255.0
+
+        fm = fm.reshape((1, 1, 128, 128))
+        fm.to(device)
+        model.set_sigma(sigma)
+        x = model.forward(fm, points)
+        # print("Output rotations:", grx, gry, grz)
+        # im = gen_baseline(grx, gry, grz, "output.bmp", objpath = args.obj)
+
+
+def image_test(model, points, stretch, device, sigma, input_image):
+    """Test our model by loading an image and seeing how well we
+    can match it. We might need to duplicate to match the batch size.
+    """
+    # splat_in = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+    splat_out = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+    model.set_splat(splat_out)
+
+    # Need to call model.eval() to set certain layers to eval mode. Ones
+    # like dropout and what not
+    with torch.no_grad():
+        model.eval()
+        im = input_image.reshape((1, 1, 128, 128))
+        im = im.to(device)
+        model.set_sigma(sigma)
+        x = model.forward(im, points, stretch)
+        x = torch.squeeze(x)
+        im = torch.squeeze(im)
+        loss = F.l1_loss(x, im)
+        print(float(loss.item()), ",", model.get_rots())
+        # print(x)
+        save_image(x, name="guess.jpg")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Shaper run")
+    parser.add_argument("--load", default=".", help="Path to our model dir.")
+    parser.add_argument(
+        "--image", default="input.fits", help="An input image in FITS format"
+    )
+    parser.add_argument(
+        "--points", default="", help="Alternative points to use (default: none)."
+    )
+    parser.add_argument(
+        "--no-cuda", action="store_true", default=False, help="disables CUDA training"
+    )
+    parser.add_argument(
+        "--sigma", type=float, default=1.2, help="Sigma for the output (default: 1.2)"
+    )
+
+    args = parser.parse_args()
+    use_cuda = not args.no_cuda and torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+
+    if args.load and os.path.isfile(args.load + "/checkpoint.pth.tar"):
+        # (savedir, savename) = os.path.split(args.load)
+        # print(savedir, savename)
+        (model, points, stretch) = load_checkpoint(
+            args.load, "checkpoint.pth.tar", device, evaluation=True
+        )
+        model = load_model(args.load + "/model.tar")
+        model = model.to(device)
+    else:
+        print("--load must point to a run directory.")
+        sys.exit(0)
+
+    # Potentially load a different set of points
+    if args.points != "":
+        if "ply" in args.points:
+            points = points_to_torch(load_ply(args.points), device=device)
+        else:
+            points = points_to_torch(load_obj(args.points), device=device)
+
+    if os.path.isfile(args.image):
+        input_image = load_fits(args.image)
+        image_test(model, points, stretch, device, args.sigma, input_image)
+    else:
+        print("--image must point to a valid fits file.")
+        sys.exit(0)

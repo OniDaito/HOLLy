@@ -1,0 +1,8 @@
+*swp
+*.pyc
+__pycache__
+save
+run.conf
+run/output
+.mypy*
+.vscode
