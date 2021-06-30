@@ -1,4 +1,8 @@
-# Holly - a neural network for 3D Reconstruction from 2D Microscopy images
+# HOLLy - Hypothesised Object from Light Localisations
+## A neural network for 3D Reconstruction from 2D Microscopy images
+
+![Final structure](https://shutr.benjamin.computer/static/shutr_files/original/cep_0_rot.gif)
+![Evolving structure](https://shutr.benjamin.computer/static/shutr_files/original/num2021_05_14_cep_0.gif)
 
 A [PyTorch](https://pytorch.org/) based neural network program designed to recontruct single molecules in 3D from a series of 2D storm images.
 
@@ -6,15 +10,17 @@ The goal of this network is to take a set of 2D representations of a molecule (o
 
 ## Overview
 
-It is split into *train.py* and *run.py* with the actual net stored in in *net/net.py*. *eval.py* will evaluate a trained network, creating statistics and visualistions. 
+HOLLy takes a number of images, or generates images from a ground-truth point-cloud, trains on these attempting to improve it's own internal representation of what it thinks the ground-truth object is. At the end of training, an obj or ply file will be produced, representing the object the network converged upon.
+
+HOLLy is split into *train.py* and *run.py* with the actual net stored in in *net/net.py*. *eval.py* will evaluate a trained network, creating statistics and visualistions. 
 
 *net/renderer.py* contains the code for the differentiable renderer. *data/loader.py*, along with *data/buffer.py* and *data/batcher.py* create our simulated data for all the tests, including adding noise. *data/imageload.py* is similar, but for pre-rendered images.
 
 ## tl;dr version
 
-Run the script *tldr.sh* from this directory. You will need miniconda and a computer capable of running a large neural network with Pytorch.
+Run the script *tldr.sh* from the top directory. You will need [miniconda](https://docs.conda.io/en/latest/miniconda.html) installed and a computer running Linux, capable of trainin a large neural network with Pytorch. As a guide, a machine with several cores, >=16G memory and an nVida GPU such as a GTX 2080Ti will work reasonably well.
 
-It will creata miniconda environment called "holly", download, install and start running an experiment, followed by a generation of results and a *final.ply* file representing the learned model. Once this script has completed, take a look at the *Outputs* section of this readme to understand what the network has produced.
+The script creates a miniconda environment called "holly", downloads packages and starts running an experiment, followed by a generation of results and a *final.ply* file representing the learned model. Once this script has completed, take a look at the *Outputs* section of this readme to understand what the network has produced.
 
 ## Installation
 
@@ -31,10 +37,11 @@ Requirements include:
 
 And one of the following
 
-* [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or a [pyenv/virtualenv](https://github.com/pyenv/pyenv) setup.
-* [Docker](https://www.docker.com/) 
+* [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
+* [pyenv/virtualenv](https://github.com/pyenv/pyenv).
+* [Docker](https://www.docker.com/).
 
-If you want to generate lots of statistics for use later you'll also need the following installed and running:
+If you want to generate lots of statistics for use later you'll also need all of the following installed and running:
 
 * [PostgreSQL](https://www.postgresql.org/)
 * [Redis](https://redis.io/)
@@ -105,6 +112,11 @@ There are a large number of options you can pass to the network. These are liste
 
 Training usually takes around 4 hours on a nVidia 2080Ti system when running for 20 epochs on an 80,000 size training set.
 
+The final structure discerned by the network is saved as both an obj and a ply file. Both can be viewed in a program like [Meshlab](https://www.meshlab.net/) or [Blender](https://www.blender.org/). The files can be found in:
+
+    <save_directory>/plys/shape_e<epoch>_s<step>.ply
+    <save_directory>/objs/shape_e<epoch>_s<step>.obj
+
 ### Real Image data
 
 To use real, experimental data one must have a number of images, rendered using a particular sigma. These images need to be held within a directory stucture that matches the sigma file passed in. For example:
@@ -128,7 +140,23 @@ Images should be in [FITS Format](https://en.wikipedia.org/wiki/FITS) (they supp
 We would then run the following command:
     python train.py --fitspath images --train-size 80000 --lr 0.0004 --savedir /tmp/runs/test_run --num-points 230 --no-translation --epochs 20 --sigma-file sigma_images.csv
 
-A test data set is available for download. Use the script *cep152_experiment.sh* in the *run* directory. This assumes you've installed the environment with either miniconda or docker. This script will download the data and once downloaded, start training a network.
+A test data set is available for download from [Zenodo](https://zenodo.org/record/4751057). This is a big download - just under 50G! However it does have all the data ready for use, pre-rendered.  
+
+Once you've donwloaded and unzipped the data, place all the images into a directory structure like this:
+
+    holly
+    |___run
+           |___paper
+                    |____10.0
+                    |____8
+                    etc
+                    ...
+
+Use the script *run_cp.sh* in the *run* directory. This assumes you've installed the environment with either miniconda or docker. This script assumes you have downloaded the dataset and placed it the correct directory.
+
+If you want to see the results of a real CEP152 run - the ones from our paper - you can download them from [Zenodo](https://zenodo.org/record/4836173) too!
+
+#### Generating your own images from STORM localisations.
 
 The data used in the paper comes from [Suliana Manley's research group](https://www.epfl.ch/labs/leb/) and is available as a MATLAB/HDF5 file. In order to use it with this network, you will need to render the data to a series of FITs images. We have written a program to do this called [CEPrender](https://github.com/OniDaito/CEPrender). You can download and install this program, then generate the data as follows:
 
@@ -139,7 +167,7 @@ The data used in the paper comes from [Suliana Manley's research group](https://
     .
     cargo run --release --bin render /data/Cep152_all.mat /paper/1.41 24 1.41 10 cep_all_accepted.txt
 
-... filling the missing steps with the other sigma levels. This takes quite a while, even with only 10 augmentations. The pre-rendered data can be found [here]() complete the with the full instructions for generating it.
+... filling the missing steps with the other sigma levels. This takes quite a while, even with only 10 augmentations. The pre-rendered data can be found on [Zenodo](https://zenodo.org/record/4751057) complete the with the full instructions for generating it.
 
 ## Outputs
 
@@ -178,6 +206,126 @@ Individual tests can be run as follows:
 
     python -m unittest test.data.Data.test_wobble
 
+## Our published paper and data
+
+
+
+## Command line and configuration options
+
+When running train.py, there are a number of options one can choose.
+
+    --batch-size
+    Input batch size for training (default: 20).
+
+    --epochs
+    Number of epochs to train (default: 10).
+
+    --lr
+    Learning rate (default: 0.0004).
+
+    --mask-thresh
+    Threshold for what we consider in the loss (default: 0.05)
+
+    --plr
+    Learning rate for points (default: same as the learning rate).
+
+    --spawn-rate
+    Probabilty of spawning a point (default: 1.0).
+
+    --max-trans
+    The scalar on the translation we generate and predict (default: 0.1).
+
+    --max-spawn
+    How many flurophores are spawned total (default: 1).
+
+    --save-stats
+    Save the stats of the training for later graphing.
+
+    --predict-sigma
+    Predict the sigma (default: False).
+
+    --no-cuda
+    Disables CUDA training.
+
+    --deterministic
+    Run deterministically.
+
+    --no-translate",
+    Turn off translation prediction in the network (default: false).
+
+    --no-data-translate
+    Turn off translation in the data loader(default: false).
+
+    --normalise-basic
+    Normalise with torch basic intensity divide.
+
+    --scheduler
+    Use a scheduler on the loss.
+
+    --seed
+    Random seed (default: 1).
+
+    --cont
+    Continuous sigma values
+
+    --log-interval
+    How many batches to wait before logging training status (default 100)
+
+    --num-points
+    How many points to optimise (default 200).
+
+    --aug
+    Do we augment the data with XY rotation (default False)?
+
+    --num-aug
+    How many augmentations to perform per datum (default 10).
+
+    --save-interval
+    How many batches to wait before saving (default 1000).
+
+    --load
+    A checkpoint file to load in order to continue training.
+
+    "--savename
+    The name for checkpoint save file.
+
+    --savedir
+    The name for checkpoint save directory.
+
+    --allocfile
+    An optional data order allocation file.
+
+    --sigma-file
+    Optional file for the sigma blur dropoff.
+
+    --dropout
+    When coupled with objpath, what is the chance of a point being dropped? (default 0.0)
+
+    --wobble
+    Distance to wobble our fluorophores (default 0.0)
+
+    --fitspath
+    Path to a directory of FITS files.
+
+    --objpath
+    Path to the obj for generating data
+    
+    --train-size
+    The size of the training set (default: 50000)
+
+    --image-size
+    The size of the images involved, assuming square (default: 128).
+
+    --test-size
+    The size of the training set (default: 200)
+
+    --valid-size
+    The size of the training set (default: 200)
+
+    --buffer-size
+    How big is the buffer in images?  (default: 40000)
+    
+
 ## Contributing
 
 You can contribute to this project by submitting a pull request through github. Suggestions and feedback are welcomed through Github's Issue tracker. If you want to contact the authors please email Benjamin Blundell at benjamin.blundell@kcl.ac.uk. 
@@ -185,3 +333,5 @@ You can contribute to this project by submitting a pull request through github. 
 ### Useful links
 
 * Docker image based on - [https://github.com/anibali/docker-pytorch](https://github.com/anibali/docker-pytorch)
+
+*"I was in love once. A Sinclair ZX81. People said, no, Holly, she's not for you. She's cheap, she's stupid and she wouldn't load, well, not for me anyway." - Holly. Red Dwarf*

@@ -361,6 +361,8 @@ def train(
         if use_scheduler:
             scheduler.step(loss)
 
+    # Save a final points file once training is complete
+    S.save_points(points, args.savedir, epoch, batch_idx)
     return points
 
 
@@ -543,7 +545,7 @@ if __name__ == "__main__":
         type=float,
         default=0.0004,
         metavar="LR",
-        help="learnimaxng rate (default: 0.0004)",
+        help="learning rate (default: 0.0004)",
     )
     parser.add_argument(
         "--mask-thresh",
@@ -557,7 +559,7 @@ if __name__ == "__main__":
         "--plr",
         type=float,
         default=None,
-        help="Learning rate for points (default: 0.0004)",
+        help="Learning rate for points (default: The same as the learning rate).",
     )
     parser.add_argument(
         "--spawn-rate",
