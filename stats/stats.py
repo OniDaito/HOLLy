@@ -183,7 +183,10 @@ will be recorded."
         try:
             self._conv(obj, name, epoch, step, idx)
         except Exception:
-            print("No database to store statistic.")
+            pass
+            # This is naughty but until I find a way for it to be less
+            # verbose I'm leaving it in for this version.
+            #print("No database to store statistic.")
 
     def save_jpg(
         self,

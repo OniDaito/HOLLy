@@ -15,21 +15,13 @@ HOLLy is split into *train.py* and *run.py* with the actual net stored in in *ne
 
 *net/renderer.py* contains the code for the differentiable renderer. *data/loader.py*, along with *data/buffer.py* and *data/batcher.py* create our simulated data for all the tests, including adding noise. *data/imageload.py* is similar, but for pre-rendered images.
 
-## tl;dr version
-
-Run the script *tldr.sh* from the top directory. You will need [miniconda](https://docs.conda.io/en/latest/miniconda.html) installed and a computer running Linux, capable of trainin a large neural network with Pytorch. As a guide, a machine with several cores, >=16G memory and an nVida GPU such as a GTX 2080Ti will work reasonably well.
-
-The script creates a miniconda environment called "holly", downloads packages and starts running an experiment, followed by a generation of results and a *final.ply* file representing the learned model. Once this script has completed, take a look at the *Outputs* section of this readme to understand what the network has produced.
-
 ## Installation
-
-Taking it a little slower, there are various options for running our network using either miniconda or docker.
 
 ### Requirements
 
 Requirements include:
 
-* A Linux system setup to perform deeplearning, with appropriate drivers installed.
+* A Linux system setup to perform deeplearning, with appropriate nvidia drivers installed.
 * Python version 3
 * CUDA setup and running
 * A GPU with at least 4G of memory (more if you are fitting more points).
@@ -40,13 +32,27 @@ And one of the following
 * [pyenv/virtualenv](https://github.com/pyenv/pyenv).
 * [Docker](https://www.docker.com/).
 
-If you want to generate lots of statistics for use later you'll also need all of the following installed and running:
+If you want to generate lots of statistics for use later you'll also need all of the following installed and running. Initially, you shouldn't need these but you might see a few warnings pop up:
 
 * [PostgreSQL](https://www.postgresql.org/)
 * [Redis](https://redis.io/)
+
+If you want some fancy formatted results or if you are running the tl;dr script, install the following:
+
 * [Imagemagick](https://imagemagick.org/index.php)
+* [ffmpeg](https://ffmpeg.org/)
+
+Chances are, if you are running a Linux distribution, you will have these already and if not, they'll be in your repository management system (like apt or pacman).
 
 All of the python requirements are listed in the requirements.txt file (there aren't too many).
+
+### tl;dr version
+
+Run the script *tldr.sh* from the top directory. You will need [miniconda](https://docs.conda.io/en/latest/miniconda.html) installed and a computer running Linux, capable of trainin a large neural network with Pytorch. As a guide, a machine with several cores, >=16G memory and an nVida GPU such as a GTX 2080Ti will work reasonably well.
+
+The script creates a miniconda environment called "holly", downloads packages and starts running an experiment, followed by a generation of results and a *final.ply* file representing the learned model. Once this script has completed, take a look at the *Outputs* section of this readme to understand what the network has produced.
+
+
 
 ### via miniconda
 
