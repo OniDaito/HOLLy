@@ -19,15 +19,15 @@ echo -e "\U1F69A " ${GREEN}CREATING MINICONDA ENVIRONMENT${NC} "\U1F69A"
 # Create miniconda environment
 conda create -n holly python
 conda activate holly
-pip install -y -r requirements.txt
+pip install -r requirements.txt # -y doesnt always work sadly
 
 mkdir experiment
 
 echo -e "\U1F3CB " ${RED}TRAINING${NC} "\U1F3CB"
 
 # Start the training
-python3 train.py --save-stats --obj objs/teapot_large.obj \
---train-size 80000 --save-stats --lr 0.0004 --savedir experiment \
+python3 train.py --obj objs/teapot_large.obj \
+--train-size 80000 --lr 0.0004 --savedir experiment \
 --num-points 230 --no-translate --no-data-translate --epochs 20 \
 --sigma-file run/sigma.csv
 

@@ -132,22 +132,23 @@ else
   python ../eval.py --no-cuda --savedir $base --obj $groundtruth $extras
 fi
 
-mesh_score -b $groundtruth -t $base/eval_out.ply > $base/mesh_score.txt 
+# Mesh score won't be installed on other systems so lets comment out for now
+#mesh_score -b $groundtruth -t $base/eval_out.ply > $base/mesh_score.txt 
 
 # Export the redis data to a set of CSVs which we will then add to a zip
 # but only if they don't already exist
-if [ ! -f $base/redis_csv_data.zip ]
-then	
-  echo -e "\U1F69A " ${GREEN}EXPORTING REDIS DATA${NC} "\U1F69A"
-  mkdir parts
-  for i in `redis-cli  KEYS "$subdir:*" | tr -d '"' `
-  do
-    redis-cli --csv ZRANGE $i 0 -1 > parts/$i.csv
-  done
+#if [ ! -f $base/redis_csv_data.zip ]
+#then	
+#  echo -e "\U1F69A " ${GREEN}EXPORTING REDIS DATA${NC} "\U1F69A"
+#  mkdir parts
+#  for i in `redis-cli  KEYS "$subdir:*" | tr -d '"' `
+#  do
+#    redis-cli --csv ZRANGE $i 0 -1 > parts/$i.csv
+#  done
 
-  cd parts
-  zip redis_csv_data.zip *
-  mv redis_csv_data.zip ../$base/.
-  cd ..
-  rm -rf parts
-fi
+#  cd parts
+#  zip redis_csv_data.zip *
+#  mv redis_csv_data.zip ../$base/.
+#  cd ..
+#  rm -rf parts
+#fi
