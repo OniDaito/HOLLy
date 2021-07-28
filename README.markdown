@@ -52,8 +52,6 @@ Run the script *tldr.sh* from the top directory. You will need [miniconda](https
 
 The script creates a miniconda environment called "holly", downloads packages and starts running an experiment, followed by a generation of results and a *final.ply* file representing the learned model. Once this script has completed, take a look at the *Outputs* section of this readme to understand what the network has produced.
 
-
-
 ### via miniconda
 
 Assuming you have [installed miniconda](https://docs.conda.io/en/latest/miniconda.html), start with the following:
@@ -339,4 +337,4 @@ You can contribute to this project by submitting a pull request through github. 
 
 * Docker image based on - [https://github.com/anibali/docker-pytorch](https://github.com/anibali/docker-pytorch)
 
-*"I was in love once. A Sinclair ZX81. People said, no, Holly, she's not for you. She's cheap, she's stupid and she wouldn't load, well, not for me anyway." - Holly. Red Dwarf*
+*"And the moral of the story; appreciate what you've got, because basically, I'm fantastic!" - Holly. Red Dwarf*
