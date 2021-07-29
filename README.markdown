@@ -211,6 +211,9 @@ Individual tests can be run as follows:
 
 ## Our published paper and data
 
+Our paper "3D Structure from SMLM images using Deep Learning" is under review at the moment and hopefully will be available soon.
+
+The CEP152 data we used in the paper with HOLLy can be found on Zenodo at [https://zenodo.org/record/4751057](https://zenodo.org/record/4751057) and the results we mention in the paper can also be downloaded from Zenodo at [https://zenodo.org/record/4836173](https://zenodo.org/record/4836173).
 
 
 ## Command line and configuration options
