@@ -2,6 +2,7 @@
 ## A neural network for 3D Reconstruction from 2D Microscopy images
 
 ![Evolving structure](https://shutr.benjamin.computer/static/shutr_files/original/num2021_05_14_cep_0.gif)
+![Bunny](https://shutr.benjamin.computer/static/shutr_files/original/file.gif)
 
 A [PyTorch](https://pytorch.org/) based neural network program designed to recontruct single molecules in 3D from a series of 2D storm images.
 
@@ -14,6 +15,8 @@ HOLLy takes a number of images, or generates images from a ground-truth point-cl
 HOLLy is split into *train.py* and *run.py* with the actual net stored in in *net/net.py*. *eval.py* will evaluate a trained network, creating statistics and visualistions. 
 
 *net/renderer.py* contains the code for the differentiable renderer. *data/loader.py*, along with *data/buffer.py* and *data/batcher.py* create our simulated data for all the tests, including adding noise. *data/imageload.py* is similar, but for pre-rendered images.
+
+![Overview diagram](https://shutr.benjamin.computer/static/shutr_files/original/diagram.gif)
 
 ## Installation
 
