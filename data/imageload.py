@@ -30,13 +30,14 @@ class ImageLoader(Loader):
     """A class that looks for images, saving the filepaths ready for
     use with the dataset class."""
 
-    def __init__(self, size=1000, image_path=".", sigma=1.25):
+    def __init__(self, size=1000, image_path=".", sigma=None):
         """
         Create our ImageLoader.
 
         The image loader expects there to be a directory matching the
         sigma passed in. An example would be '/tmp/1.25', passing in
-        '/tmp' as the image_path and 1.25 as sigma.
+        '/tmp' as the image_path and 1.25 as sigma. None means there
+        is just one directory with either one or unknown sigmas.
 
         Parameters
         ----------
@@ -46,7 +47,7 @@ class ImageLoader(Loader):
         image_path : str
             The path to search for images.
         sigma : float
-            The sigma of the images in question - default 1.25
+            The sigma of the images in question - default None
 
         Returns
         -------
@@ -127,14 +128,18 @@ class ImageLoader(Loader):
         Couple of choices here
         Internal function.
         """
-        path = self.base_image_path + "/" + str(int(self.sigma)).zfill(2)
-        path1 = self.base_image_path + "/" + str(int(self.sigma))
-        path2 = self.base_image_path + "/" + str(self.sigma)
+        path = self.base_image_path
 
-        if os.path.exists(path1):
-            path = path1
-        if os.path.exists(path2):
-            path = path2
+        if self.sigma is not None:
+
+            path = self.base_image_path + "/" + str(int(self.sigma)).zfill(2)
+            path1 = self.base_image_path + "/" + str(int(self.sigma))
+            path2 = self.base_image_path + "/" + str(self.sigma)
+
+            if os.path.exists(path1):
+                path = path1
+            if os.path.exists(path2):
+                path = path2
 
         print("Creating data from", path)
         self.filenames = self._find_files(path, self.size)

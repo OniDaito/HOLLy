@@ -16,6 +16,28 @@ from net.renderer import Splat
 from util.math import VecRotTen, TransTen, PointsTen
 
 
+def conv_size(x, padding=0, kernel_size=5, stride=1) -> int:
+    """
+    Return the size of the convolution layer given a set of parameters
+
+    Parameters
+    ----------
+    x : int
+        The size of the input tensor
+
+    padding: int
+        The conv layer padding - default 0
+    
+    kernel_size: int
+        The conv layer kernel size - default 5
+
+    stride: int 
+        The conv stride - default 1
+
+    """
+    return int((x - kernel_size + 2*padding) / stride + 1)
+
+
 def num_flat_features(x):
     """
     Return the number of features of this neural net layer,
@@ -89,23 +111,38 @@ class Net(nn.Module):
         # TODO - we only have one pseudo-maxpool at the end
         # TODO - do we fancy some drop-out afterall?
         self.conv1 = nn.Conv2d(1, 16, 5, stride=2, padding=2)
+        csize = conv_size(splat.size[0], padding=2, stride=2)
 
         self.conv2 = nn.Conv2d(16, 32, 3, stride=2, padding=1)
+        csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
+
         self.conv2b = nn.Conv2d(32, 32, 3, stride=1, padding=1)
+        csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
         self.conv3 = nn.Conv2d(32, 64, 3, stride=2, padding=1)
+        csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
+
         self.conv3b = nn.Conv2d(64, 64, 3, stride=1, padding=1)
+        csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
         self.conv4 = nn.Conv2d(64, 128, 3, stride=2, padding=1)
+        csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
+
         self.conv4b = nn.Conv2d(128, 128, 3, stride=1, padding=1)
+        csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
         self.conv5 = nn.Conv2d(128, 256, 3, stride=2, padding=1)
+        csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
+
         self.conv5b = nn.Conv2d(256, 256, 3, stride=1, padding=1)
+        csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
         self.conv6 = nn.Conv2d(256, 256, 3, stride=2, padding=1)
-
+        csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
+        
         # Fully connected layers
-        self.fc1 = nn.Linear(1024, 512)
+        #self.fc1 = nn.Linear(1024, 512)
+        self.fc1 = nn.Linear(csize * csize * 256, 512)
         nx = 3
 
         if self.predict_translate:
@@ -119,7 +156,7 @@ class Net(nn.Module):
         self.splat = splat
         self.device = self.splat.device
         self._lidx = 0
-        self._mask = torch.zeros((128, 128), dtype=torch.float32)
+        self._mask = torch.zeros(splat.size, dtype=torch.float32)
 
         self.layers = [
             self.conv1,
@@ -259,7 +296,7 @@ class Net(nn.Module):
 
             images.append(
                 self.splat.render(points, r, t, self._mask, final_sigma).reshape(
-                    (1, 128, 128)
+                    (1, self.splat.size[0], self.splat.size[1])
                 )
             )
         # TODO - should we return the params we've predicted as well?

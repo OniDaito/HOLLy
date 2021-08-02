@@ -24,6 +24,7 @@ import math
 import random
 import argparse
 import os
+import sys
 from util.points import load_points, save_points, init_points
 from util.loadsave import save_checkpoint, save_model
 from data.loader import Loader
@@ -200,7 +201,6 @@ def cont_sigma(args, current_epoch: int, sigma: float, sigma_lookup: list) -> fl
     a = 0
     if current_epoch > 0:
         a = int(current_epoch / eps)
-        #a = int(current_epoch % eps)
     b = a + 1
     assert b < len(sigma_lookup)
     assert a >= 0
@@ -306,9 +306,8 @@ def train(
             lossy = loss.item()
             optimiser.step()
 
-
             # If we are using continuous sigma, lets update it here
-            if args.cont:
+            if args.cont and not args.no_sigma:
                 sigma = cont_sigma(args, epoch, sigma, sigma_lookup)
                 # 2 places again - not ideal :/
                 data_loader.set_sigma(sigma)
@@ -332,7 +331,7 @@ def train(
                         batch_idx * args.batch_size,
                         buffer_train.set.size,
                         100.0 * batch_idx * args.batch_size / buffer_train.set.size,
-                        lossy,
+                        lossy
                     )
                 )
 
@@ -403,23 +402,30 @@ def init(args, device):
 
     # Sigma checks. Do we use a file, do we go continuous etc?
     # Check for sigma blur file
-    sigma_lookup = [10.0, 1.25]
-    if len(args.sigma_file) > 0:
-        if os.path.isfile(args.sigma_file):
-            with open(args.sigma_file, "r") as f:
-                ss = f.read()
-                sigma_lookup = []
-                tokens = ss.replace("\n", "").split(",")
-                for token in tokens:
-                    sigma_lookup.append(float(token))
+    sigma_lookup = [None]
+
+    if not args.no_sigma:
+        sigma_lookup = [10.0, 1.25]
+        if len(args.sigma_file) > 0:
+            if os.path.isfile(args.sigma_file):
+                with open(args.sigma_file, "r") as f:
+                    ss = f.read()
+                    sigma_lookup = []
+                    tokens = ss.replace("\n", "").split(",")
+                    for token in tokens:
+                        sigma_lookup.append(float(token))
+
+    if (args.no_sigma and not args.predict_sigma) is True:
+        print("If using no-sigma, you must predict sigma")
+        sys.exit()
 
     # Setup our splatting pipeline. We use two splats with the same
     # values because one never changes its points / mask so it sits on
     # the gpu whereas the dataloader splat reads in differing numbers of
     # points.
 
-    splat_in = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
-    splat_out = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+    splat_in = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device, size=(args.image_size, args.image_size))
+    splat_out = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device, size=(args.image_size, args.image_size))
 
     # Setup the dataloader - either generated from OBJ or fits
     if args.fitspath != "":
@@ -435,9 +441,11 @@ def init(args, device):
         set_test = DataSet(SetType.TEST, test_set_size, data_loader)
 
         buffer_train = BufferImage(
-            set_train, buffer_size=args.buffer_size, device=device
+            set_train, buffer_size=args.buffer_size, device=device,
+                image_size=(args.image_size, args.image_size)
         )
-        buffer_test = BufferImage(set_test, buffer_size=test_set_size, device=device)
+        buffer_test = BufferImage(set_test, buffer_size=test_set_size, 
+            image_size=(args.image_size, args.image_size),  device=device)
 
     elif args.objpath != "":
         data_loader = Loader(
@@ -659,6 +667,13 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="Do we augment the data with XY rotation (default False)?",
+        required=False,
+    )
+    parser.add_argument(
+        "--no-sigma",
+        default=False,
+        action="store_true",
+        help="Do we use an input sigma profile or do we ignore it?",
         required=False,
     )
     parser.add_argument(
