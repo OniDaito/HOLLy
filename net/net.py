@@ -105,7 +105,8 @@ class Net(nn.Module):
         self.conv6 = nn.Conv2d(256, 256, 3, stride=2, padding=1)
 
         # Fully connected layers
-        self.fc1 = nn.Linear(1024, 512)
+        #self.fc1 = nn.Linear(1024, 512)
+        self.fc1 = nn.Linear(256, 512)
         nx = 3
 
         if self.predict_translate:
