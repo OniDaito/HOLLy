@@ -115,7 +115,7 @@ class Net(nn.Module):
         # TODO - do we fancy some drop-out afterall?
         self.conv1 = nn.Conv2d(1, 16, 5, stride=2, padding=2)
         csize = conv_size(splat.size[0], padding=2, stride=2)
-        
+
         self.conv2 = nn.Conv2d(16, 32, 3, stride=2, padding=1)
         csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
 
@@ -142,11 +142,10 @@ class Net(nn.Module):
 
         self.conv6 = nn.Conv2d(256, 256, 3, stride=2, padding=1)
         csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
-        print("Csize", csize)
-
+        
         # Fully connected layers
         #self.fc1 = nn.Linear(1024, 512)
-        self.fc1 = nn.Linear(csize, 512)
+        self.fc1 = nn.Linear(csize * csize * 256, 512)
         nx = 3
 
         if self.predict_translate:
