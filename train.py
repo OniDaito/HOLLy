@@ -416,7 +416,7 @@ def init(args, device):
                     for token in tokens:
                         sigma_lookup.append(float(token))
 
-    assert((args.no_sigma and args.predict_sigma) or (not args.no_sigma), "If using no-sigma, you must predict sigma")
+    assert(not (args.no_sigma and not args.predict_sigma), "If using no-sigma, you must predict sigma")
 
     # Setup our splatting pipeline. We use two splats with the same
     # values because one never changes its points / mask so it sits on
@@ -440,9 +440,9 @@ def init(args, device):
         set_test = DataSet(SetType.TEST, test_set_size, data_loader)
 
         buffer_train = BufferImage(
-            set_train, buffer_size=args.buffer_size, device=device
+            set_train, buffer_size=args.buffer_size, device=device, image_size=args.image_size,
         )
-        buffer_test = BufferImage(set_test, buffer_size=test_set_size, device=device)
+        buffer_test = BufferImage(set_test, buffer_size=test_set_size,  image_size=args.image_size, device=device)
 
     elif args.objpath != "":
         data_loader = Loader(
@@ -464,11 +464,11 @@ def init(args, device):
         set_test = DataSet(SetType.TEST, test_set_size, data_loader)
 
         buffer_train = Buffer(
-            set_train, splat_in, buffer_size=args.buffer_size, device=device
+            set_train, splat_in, buffer_size=args.buffer_size, device=device,  image_size=args.image_size
         )
 
         buffer_test = Buffer(
-            set_test, splat_in, buffer_size=test_set_size, device=device
+            set_test, splat_in, buffer_size=test_set_size, device=device,  image_size=args.image_size
         )
     else:
         raise ValueError("You must provide either fitspath or objpath argument.")
