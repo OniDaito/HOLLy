@@ -119,7 +119,7 @@ class Net(nn.Module):
         self.splat = splat
         self.device = self.splat.device
         self._lidx = 0
-        self._mask = torch.zeros((128, 128), dtype=torch.float32)
+        self._mask = torch.zeros(splat.size, dtype=torch.float32)
 
         self.layers = [
             self.conv1,
