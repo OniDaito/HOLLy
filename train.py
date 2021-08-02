@@ -308,7 +308,7 @@ def train(
 
 
             # If we are using continuous sigma, lets update it here
-            if args.cont:
+            if args.cont and not args.no_sigma:
                 sigma = cont_sigma(args, epoch, sigma, sigma_lookup)
                 # 2 places again - not ideal :/
                 data_loader.set_sigma(sigma)
