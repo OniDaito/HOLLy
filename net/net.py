@@ -16,7 +16,7 @@ from net.renderer import Splat
 from util.math import VecRotTen, TransTen, PointsTen
 
 
-def conv_size(x, padding=0, dilation=0, kernel_size=5, stride=1) -> int:
+def conv_size(x, padding=0, kernel_size=5, stride=1) -> int:
     """
     Return the size of the convolution layer given a set of parameters
 
@@ -28,9 +28,6 @@ def conv_size(x, padding=0, dilation=0, kernel_size=5, stride=1) -> int:
     padding: int
         The conv layer padding - default 0
     
-    dilation: int
-        The conv layer dilation - default 0
-    
     kernel_size: int
         The conv layer kernel size - default 5
 
@@ -38,7 +35,7 @@ def conv_size(x, padding=0, dilation=0, kernel_size=5, stride=1) -> int:
         The conv stride - default 1
 
     """
-    return int(((x + (2 * padding) - (dilation * (kernel_size - 1)) - 1) / stride) + 1)
+    return int((x - kernel_size + 2*padding) / stride + 1)
 
 
 def num_flat_features(x):
