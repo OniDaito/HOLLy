@@ -219,6 +219,7 @@ class Net(nn.Module):
         x = F.leaky_relu(self.batch6(self.conv6(x)))
         x = x.view(-1, num_flat_features(x))
 
+        print("x shape", x.shape)
         x = F.leaky_relu(self.fc1(x))
         self._final = self.fc2(x)  # Save this layer for later use
 
