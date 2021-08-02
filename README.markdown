@@ -333,7 +333,10 @@ When running train.py, there are a number of options one can choose.
 
     --buffer-size
     How big is the buffer in images?  (default: 40000)
-    
+
+    --no-sigma
+    Assume there is no sigma blurring in the input data.
+    This must be paired with --predict-sigma. (default: False)    
 
 ## Contributing
 
