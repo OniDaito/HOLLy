@@ -259,7 +259,7 @@ class Net(nn.Module):
 
             images.append(
                 self.splat.render(points, r, t, self._mask, final_sigma).reshape(
-                    (1, 128, 128)
+                    (1, self.splat.size[0], self.splat.size[1])
                 )
             )
         # TODO - should we return the params we've predicted as well?
