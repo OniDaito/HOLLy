@@ -403,15 +403,20 @@ def init(args, device):
 
     # Sigma checks. Do we use a file, do we go continuous etc?
     # Check for sigma blur file
-    sigma_lookup = [10.0, 1.25]
-    if len(args.sigma_file) > 0:
-        if os.path.isfile(args.sigma_file):
-            with open(args.sigma_file, "r") as f:
-                ss = f.read()
-                sigma_lookup = []
-                tokens = ss.replace("\n", "").split(",")
-                for token in tokens:
-                    sigma_lookup.append(float(token))
+    sigma_lookup = [None]
+
+    if not args.no_sigma:
+        sigma_lookup = [10.0, 1.25]
+        if len(args.sigma_file) > 0:
+            if os.path.isfile(args.sigma_file):
+                with open(args.sigma_file, "r") as f:
+                    ss = f.read()
+                    sigma_lookup = []
+                    tokens = ss.replace("\n", "").split(",")
+                    for token in tokens:
+                        sigma_lookup.append(float(token))
+
+    assert((args.no_sigma and args.predict_sigma) or (not args.no_sigma), "If using no-sigma, you must predict sigma")
 
     # Setup our splatting pipeline. We use two splats with the same
     # values because one never changes its points / mask so it sits on
@@ -659,6 +664,13 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="Do we augment the data with XY rotation (default False)?",
+        required=False,
+    )
+    parser.add_argument(
+        "--no-sigma",
+        default=False,
+        action="store_true",
+        help="Do we use an input sigma profile or do we ignore it?",
         required=False,
     )
     parser.add_argument(
