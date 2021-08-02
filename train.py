@@ -24,6 +24,7 @@ import math
 import random
 import argparse
 import os
+import sys
 from util.points import load_points, save_points, init_points
 from util.loadsave import save_checkpoint, save_model
 from data.loader import Loader
@@ -200,7 +201,6 @@ def cont_sigma(args, current_epoch: int, sigma: float, sigma_lookup: list) -> fl
     a = 0
     if current_epoch > 0:
         a = int(current_epoch / eps)
-        #a = int(current_epoch % eps)
     b = a + 1
     assert b < len(sigma_lookup)
     assert a >= 0
@@ -306,7 +306,6 @@ def train(
             lossy = loss.item()
             optimiser.step()
 
-
             # If we are using continuous sigma, lets update it here
             if args.cont and not args.no_sigma:
                 sigma = cont_sigma(args, epoch, sigma, sigma_lookup)
@@ -332,7 +331,7 @@ def train(
                         batch_idx * args.batch_size,
                         buffer_train.set.size,
                         100.0 * batch_idx * args.batch_size / buffer_train.set.size,
-                        lossy,
+                        lossy
                     )
                 )
 
@@ -418,6 +417,7 @@ def init(args, device):
 
     if (args.no_sigma and not args.predict_sigma) is True:
         print("If using no-sigma, you must predict sigma")
+        sys.exit()
 
     # Setup our splatting pipeline. We use two splats with the same
     # values because one never changes its points / mask so it sits on
