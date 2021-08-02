@@ -141,6 +141,7 @@ class Net(nn.Module):
 
         self.conv6 = nn.Conv2d(256, 256, 3, stride=2, padding=1)
         csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
+        print("Csize", csize)
 
         # Fully connected layers
         #self.fc1 = nn.Linear(1024, 512)

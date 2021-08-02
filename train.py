@@ -416,7 +416,8 @@ def init(args, device):
                     for token in tokens:
                         sigma_lookup.append(float(token))
 
-    assert(not (args.no_sigma and not args.predict_sigma), "If using no-sigma, you must predict sigma")
+    if (args.no_sigma and not args.predict_sigma) is True:
+        print("If using no-sigma, you must predict sigma")
 
     # Setup our splatting pipeline. We use two splats with the same
     # values because one never changes its points / mask so it sits on
