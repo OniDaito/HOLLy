@@ -4,16 +4,16 @@ NC='\033[0m' # No Colour
 
 echo -e "\U1F3CB " ${RED}TRAINING${NC} "\U1F3CB"
 
-#if ! git diff-files --quiet --ignore-submodules -- ; then
-#  echo "You have changes that have not been committed. Please commit before continuing."
-#  exit 1
-#fi
+if ! git diff-files --quiet --ignore-submodules -- ; then
+  echo "You have changes that have not been committed. Please commit before continuing."
+  exit 1
+fi
 
-#if [ $# < 2 ]
-#  then
-#    echo "Please pass the directory to save and an overall comment as to what this network is doing."
-#    exit 1
-#fi
+if [ $# < 2 ]
+  then
+    echo "Please pass the directory to save and an overall comment as to what this network is doing."
+    exit 1
+fi
 
 baseops=""
 date=$(date +'%Y_%m_%d')
@@ -53,19 +53,11 @@ fi
 sigmafile=`grep "sigma" $basedir/run.conf | sed -En "s/.* --sigma-file (.*)/\1/p"`
 groundtruth=`grep "sigma" $basedir/run.conf | sed -En "s/.* --gt (.*) --save.*/\1/p"`
 
-if [ -f $basedir/run.conf ]; then
-  rm $basedir/run.conf
-fi
-
-if [ -f $datadir/data.conf ]; then
-  cp $datadir/data.conf $basedir/data.conf
-fi
-
-#if [ -f $sigmafile ]; then
+if [ -f $sigmafile ]; then
   cp $sigmafile $basedir/$sigmafile
   cat $sigmafile >> $basedir/notes.txt
-  git log --format=%B -n 1 HEAD >> $basedir/notes.txt
-#fi
+fi
+git log --format=%B -n 1 HEAD >> $basedir/notes.txt
 
 echo "Time to train."
 
