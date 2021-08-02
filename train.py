@@ -440,9 +440,11 @@ def init(args, device):
         set_test = DataSet(SetType.TEST, test_set_size, data_loader)
 
         buffer_train = BufferImage(
-            set_train, buffer_size=args.buffer_size, device=device, image_size=args.image_size,
+            set_train, buffer_size=args.buffer_size, device=device,
+                image_size=(args.image_size, args.image_size)
         )
-        buffer_test = BufferImage(set_test, buffer_size=test_set_size,  image_size=args.image_size, device=device)
+        buffer_test = BufferImage(set_test, buffer_size=test_set_size, 
+            image_size=(args.image_size, args.image_size),  device=device)
 
     elif args.objpath != "":
         data_loader = Loader(
@@ -464,11 +466,11 @@ def init(args, device):
         set_test = DataSet(SetType.TEST, test_set_size, data_loader)
 
         buffer_train = Buffer(
-            set_train, splat_in, buffer_size=args.buffer_size, device=device,  image_size=args.image_size
+            set_train, splat_in, buffer_size=args.buffer_size, device=device
         )
 
         buffer_test = Buffer(
-            set_test, splat_in, buffer_size=test_set_size, device=device,  image_size=args.image_size
+            set_test, splat_in, buffer_size=test_set_size, device=device
         )
     else:
         raise ValueError("You must provide either fitspath or objpath argument.")
