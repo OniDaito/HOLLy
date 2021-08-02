@@ -423,8 +423,8 @@ def init(args, device):
     # the gpu whereas the dataloader splat reads in differing numbers of
     # points.
 
-    splat_in = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
-    splat_out = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+    splat_in = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device, size=(args.image_size, args.image_size))
+    splat_out = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device, size=(args.image_size, args.image_size))
 
     # Setup the dataloader - either generated from OBJ or fits
     if args.fitspath != "":
