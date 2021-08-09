@@ -455,14 +455,22 @@ class Loader(object):
         if os.path.isfile(filename):
             with open(filename, "rb") as f:
                 (
+                    self.size,
                     self.transform_vars,
                     self.points,
-                    self.dropouts,
+                    self.masks,
+                    self.translate,
+                    self.max_trans,
+                    self.sigma,
+                    self.augment,
+                    self.num_augment,
                     self.dropout,
                     self.wobble,
+                    self.spawn,
+                    self.rotate,
+                    self._max_spawn
                 ) = pickle.load(f)
 
-        self.size = len(self.transform_vars)
         self.available = [i for i in range(0, self.size)]
         return self
 
@@ -480,14 +488,24 @@ class Loader(object):
         -------
         self
         """
+
         with open(filename, "wb") as f:
             pickle.dump(
                 (
+                    self.size,
                     self.transform_vars,
                     self.points,
-                    self.dropouts,
+                    self.masks,
+                    self.translate,
+                    self.max_trans,
+                    self.sigma,
+                    self.augment,
+                    self.num_augment,
                     self.dropout,
                     self.wobble,
+                    self.spawn,
+                    self.rotate,
+                    self._max_spawn
                 ),
                 f,
                 pickle.HIGHEST_PROTOCOL,
