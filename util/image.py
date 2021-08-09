@@ -60,7 +60,7 @@ def save_fits(img_tensor, name="ten.fits"):
     from astropy.io import fits
 
     if hasattr(img_tensor, "detach"):
-        img_tensor = img_tensor.detach().cpu().numpy()
+        img_tensor = np.flipud(img_tensor.detach().cpu().numpy())
     hdu = fits.PrimaryHDU(img_tensor)
     hdul = fits.HDUList([hdu])
     hdul.writeto(name)

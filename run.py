@@ -8,10 +8,14 @@ Author : Benjamin Blundell - k1803390@kcl.ac.uk
 run.py - an attempt to find the 3D shape from an image.
 
 To load a trained network:
-  python run.py --load checkpoint.pth.tar --image <X>
+  python run.py --load checkpoint.pth.tar --image <X> --points <Y>
 
   Load a checkpoint and an image (FITS) and output an
   image and some angles.
+
+  For example:
+
+  python run.py --load ../runs/2021_05_06_bl_0 --image renderer.fits --points ../runs/2021_05_06_bl_0/last.ply
 
 """
 
@@ -23,7 +27,8 @@ import os
 from net.renderer import Splat
 from util.image import save_image, load_fits
 from util.loadsave import load_checkpoint, load_model
-from util.plyobj import load_obj, load_ply, points_to_torch
+from util.plyobj import load_obj, load_ply
+from util.math import PointsTen
 import torch.nn.functional as F
 from PIL import Image
 
@@ -77,7 +82,7 @@ def file_test(model, device, sigma, input_image):
         # im = gen_baseline(grx, gry, grz, "output.bmp", objpath = args.obj)
 
 
-def image_test(model, points, stretch, device, sigma, input_image):
+def image_test(model, points, device, sigma, input_image):
     """Test our model by loading an image and seeing how well we
     can match it. We might need to duplicate to match the batch size.
     """
@@ -92,7 +97,7 @@ def image_test(model, points, stretch, device, sigma, input_image):
         im = input_image.reshape((1, 1, 128, 128))
         im = im.to(device)
         model.set_sigma(sigma)
-        x = model.forward(im, points, stretch)
+        x = model.forward(im, points)
         x = torch.squeeze(x)
         im = torch.squeeze(im)
         loss = F.l1_loss(x, im)
@@ -124,7 +129,7 @@ if __name__ == "__main__":
     if args.load and os.path.isfile(args.load + "/checkpoint.pth.tar"):
         # (savedir, savename) = os.path.split(args.load)
         # print(savedir, savename)
-        (model, points, stretch) = load_checkpoint(
+        (model, points) = load_checkpoint(
             args.load, "checkpoint.pth.tar", device, evaluation=True
         )
         model = load_model(args.load + "/model.tar")
@@ -133,16 +138,18 @@ if __name__ == "__main__":
         print("--load must point to a run directory.")
         sys.exit(0)
 
+    points = PointsTen(device=device)
+
     # Potentially load a different set of points
     if args.points != "":
         if "ply" in args.points:
-            points = points_to_torch(load_ply(args.points), device=device)
+            points.from_points(load_ply(args.points))
         else:
-            points = points_to_torch(load_obj(args.points), device=device)
+            points.from_points(load_obj(args.points))
 
     if os.path.isfile(args.image):
         input_image = load_fits(args.image)
-        image_test(model, points, stretch, device, args.sigma, input_image)
+        image_test(model, points, device, args.sigma, input_image)
     else:
         print("--image must point to a valid fits file.")
         sys.exit(0)
