@@ -151,6 +151,7 @@ class Net(nn.Module):
             nx += 1
 
         self.fc2 = nn.Linear(512, nx)
+        self.sigma_mult = 10.0
 
         self.max_shift = max_trans
         self.splat = splat
@@ -281,12 +282,12 @@ class Net(nn.Module):
                 tx = (torch.tanh(rot[3]) * 2.0) * self.max_shift
                 ty = (torch.tanh(rot[4]) * 2.0) * self.max_shift
 
-            sp = nn.Softplus()
+            tn = nn.Tanh()
             final_sigma = self.sigma
 
             if self.predict_sigma:
                 nx += 1
-                final_sigma = sp(rot[nx])
+                final_sigma = (tn(rot[nx]) + 1) * self.sigma_mult
             else:
                 final_sigma = self.sigma
             # exp(tanh(s) * log(3))

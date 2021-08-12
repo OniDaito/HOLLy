@@ -143,7 +143,6 @@ def test(
             )
 
             rots_out.append(model.get_rots())
-
             loss = calculate_loss(args, target_shaped, output)
 
             # Just save one image for now - first in the batch
@@ -161,8 +160,8 @@ def test(
 
                 if args.predict_sigma:
                     ps = model._final.shape[1] - 1
-                    sp = nn.Softplus()
-                    sig_out = sp(torch.tensor([x[ps] for x in model._final]))
+                    tn = nn.Tanh()
+                    sig_out = tn(torch.tensor([(x[ps] + 1) * model.sigma_mult for x in model._final]))
                     S.watch(sig_out, "sigma_out_test")
 
             # soft_plus = torch.nn.Softplus()
