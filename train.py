@@ -161,7 +161,7 @@ def test(
                 if args.predict_sigma:
                     ps = model._final.shape[1] - 1
                     tn = nn.Tanh()
-                    sig_out = tn(torch.tensor([(x[ps] + 1) * model.sigma_mult for x in model._final]))
+                    sig_out = torch.tensor([tn(x[ps] + 1) * model.sigma_mult for x in model._final])
                     S.watch(sig_out, "sigma_out_test")
 
             # soft_plus = torch.nn.Softplus()
