@@ -132,21 +132,22 @@ class NormaliseTorch(object):
     range. This matches the same output as our network.
     """
 
-    def __init__(self, factor=100.0):
+    def __init__(self):
         """
         Create the normaliser with a scaling factor.
+        The factor starts at 100, based on a 60 x 60
+        image. We scale this based on the image size
+        going up.
 
         Parameters
         ----------
-        factor : float
-            Once we divide by the intensity, we multiply by the factor.
-            Default - 1e3
+        None
 
         Returns
         -------
         NormaliseTorch
         """
-        self.factor = factor
+        self.factor = 100
 
     def normalise(self, img_batch: torch.Tensor):
         """
@@ -166,8 +167,9 @@ class NormaliseTorch(object):
         torch.Tensor
             The normalised batch tensor
         """
+        tfactor = self.factor * (img_batch.shape[2]**2) / 3600  # 60^2 - dora image size
         intensity = torch.sum(img_batch, [2, 3])
-        intensity = self.factor / intensity
+        intensity = tfactor / intensity
         intensity = intensity.reshape(img_batch.shape[0], 1, 1, 1)
         dimg = img_batch * intensity
         return dimg
