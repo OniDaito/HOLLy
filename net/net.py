@@ -151,7 +151,7 @@ class Net(nn.Module):
             nx += 1
 
         self.fc2 = nn.Linear(512, nx)
-        self.sigma_mult = 10.0
+        self.sigma_mult = 20.0
 
         self.max_shift = max_trans
         self.splat = splat
