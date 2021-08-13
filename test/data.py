@@ -20,6 +20,7 @@ from data.buffer import Buffer, BufferImage
 from data.batcher import Batcher
 from net.renderer import Splat
 from util.render import render
+from util.image import NormaliseTorch
 
 
 class Data(unittest.TestCase):
@@ -146,7 +147,7 @@ class Data(unittest.TestCase):
     def test_batcher(self):
         """ Test the batcher."""
         splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
-        loader = Loader(size=200, objpath="./objs/teapot.obj")
+        loader = Loader(size=200, objpath="./objs/teapot_large.obj")
 
         dataset = DataSet(SetType.TRAIN, 200, loader, deterministic=True)
 
@@ -157,6 +158,23 @@ class Data(unittest.TestCase):
         for i, b in enumerate(batcher):
             self.assertTrue(len(b) == 4)
             self.assertTrue(len(b[0]) == 16)
+
+    def test_normalise(self):
+        """ Test the normaliser."""
+        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        loader = Loader(size=200, objpath="./objs/teapot_large.obj")
+        dataset = DataSet(SetType.TRAIN, 200, loader, deterministic=True)
+        buffer = Buffer(dataset, splat, buffer_size=100, device="cpu")
+        batcher = Batcher(buffer)
+        normaliser = NormaliseTorch()
+
+        for i, b in enumerate(batcher):
+            target = b[0]
+            self.assertTrue(torch.sum(target[0]) != 100.0)
+            normalised = normaliser.normalise(target.reshape(16, 1, 128, 128))
+            self.assertTrue(torch.sum(normalised[0]) == 100.0)
+            break
+            
 
     def test_wobble(self):
         splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")

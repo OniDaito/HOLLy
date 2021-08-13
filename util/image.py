@@ -132,7 +132,7 @@ class NormaliseTorch(object):
     range. This matches the same output as our network.
     """
 
-    def __init__(self, factor=1000.0):
+    def __init__(self, factor=100.0):
         """
         Create the normaliser with a scaling factor.
 
@@ -140,7 +140,7 @@ class NormaliseTorch(object):
         ----------
         factor : float
             Once we divide by the intensity, we multiply by the factor.
-            Default - 1e4
+            Default - 1e3
 
         Returns
         -------
@@ -148,22 +148,28 @@ class NormaliseTorch(object):
         """
         self.factor = factor
 
-    def normalise(self, img):
+    def normalise(self, img_batch: torch.Tensor):
         """
         Create the normaliser with a scaling factor.
 
         Parameters
         ----------
-        img : torch.Tensor
-            The tensor we want to normalise
+        img_batch : torch.Tensor
+            The batch of images we want to normalise
+            We normalise each image in the batch on it's own
+            as oppose to across the entire batch.
+            The shape must be in the pytorch shape of
+            (batch_size, 1, h, w)
 
         Returns
         -------
         torch.Tensor
-            The normalised tensor
+            The normalised batch tensor
         """
-        intensity = torch.sum(img)
-        dimg = img / intensity * self.factor
+        intensity = torch.sum(img_batch, [2, 3])
+        intensity = self.factor / intensity
+        intensity = intensity.reshape(16, 1, 1, 1)
+        dimg = img_batch * intensity
         return dimg
 
 
