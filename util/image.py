@@ -147,7 +147,7 @@ class NormaliseTorch(object):
         -------
         NormaliseTorch
         """
-        self.factor = 100
+        self.factor = 10
 
     def normalise(self, img_batch: torch.Tensor):
         """
