@@ -168,7 +168,7 @@ class NormaliseTorch(object):
         """
         intensity = torch.sum(img_batch, [2, 3])
         intensity = self.factor / intensity
-        intensity = intensity.reshape(16, 1, 1, 1)
+        intensity = intensity.reshape(img_batch.shape[0], 1, 1, 1)
         dimg = img_batch * intensity
         return dimg
 
