@@ -174,7 +174,6 @@ class Data(unittest.TestCase):
             normalised = normaliser.normalise(target.reshape(16, 1, 128, 128))
             self.assertTrue(torch.sum(normalised[0]) == 100.0)
             break
-            
 
     def test_wobble(self):
         splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
