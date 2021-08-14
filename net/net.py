@@ -286,7 +286,7 @@ class Net(nn.Module):
 
             if self.predict_sigma:
                 nx += 1
-                final_sigma = sp(rot[nx])
+                final_sigma = torch.clamp(sp(rot[nx]), max=14)
             else:
                 final_sigma = self.sigma
             # exp(tanh(s) * log(3))
