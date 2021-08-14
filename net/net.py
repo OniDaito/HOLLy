@@ -281,7 +281,7 @@ class Net(nn.Module):
                 tx = (torch.tanh(rot[3]) * 2.0) * self.max_shift
                 ty = (torch.tanh(rot[4]) * 2.0) * self.max_shift
 
-            sp = nn.SoftPlus(threshold=12)
+            sp = F.SoftPlus(threshold=12)
             final_sigma = self.sigma
 
             if self.predict_sigma:
