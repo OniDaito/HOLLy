@@ -160,7 +160,7 @@ def test(
 
                 if args.predict_sigma:
                     ps = model._final.shape[1] - 1
-                    sp = F.SoftPlus(threshold=12)
+                    sp = nn.Softplus(threshold=12)
                     sig_out = torch.tensor([sp(x[ps]) for x in model._final])
                     S.watch(sig_out, "sigma_out_test")
 
