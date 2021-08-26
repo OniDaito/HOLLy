@@ -1122,3 +1122,53 @@ def normalize(tvec: torch.Tensor) -> torch.Tensor:
     for i in range(tvec.shape[0]):
         ll.append(float(tvec[i]) / d)
     return torch.tensor(ll, dtype=tvec.dtype)
+
+
+def angles_to_axis(x_rot: float, y_rot: float, z_rot: float) -> VecRot:
+    """
+    Convert Euler angles to angle/axis
+
+    Parameters
+    ----------
+    x_rot : float
+        Rotation around X in radians
+    y_rot : float
+        Rotation around Y in radians
+    z_rot : float
+        Rotation around Z in radians
+
+    Returns
+    -------
+    VecRot
+
+    """
+    # https://www.euclideanspace.com/maths/geometry/rotations/conversions/eulerToAngle/
+
+    c1 = math.cos(y_rot/2)
+    s1 = math.sin(y_rot/2)
+    c2 = math.cos(z_rot/2)
+    s2 = math.sin(z_rot/2)
+    c3 = math.cos(x_rot/2)
+    s3 = math.sin(x_rot/2)
+    c1c2 = c1 * c2
+    s1s2 = s1 * s2
+    w = c1c2 * c3 - s1s2 * s3
+    x = c1c2 * s3 + s1s2 * c3
+    y = s1 * c2 * c3 + c1 * s2 * s3
+    z = c1 * s2 * c3 - s1 * c2 * s3
+    angle = 2 * math.acos(w)
+    norm = x * x + y * y + z * z
+
+    if (norm < 0.001):
+        x = 1
+        y = z = 0
+    else:
+        norm = math.sqrt(norm)
+        x /= norm
+        y /= norm
+        z /= norm
+
+    x *= angle
+    y *= angle
+    z *= angle
+    return VecRot(x, y, z)

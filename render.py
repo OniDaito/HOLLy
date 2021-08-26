@@ -37,7 +37,7 @@ if __name__ == "__main__":
     import util.plyobj as plyobj
     from util.image import save_image, save_fits
     from net.renderer import Splat
-    from util.math import TransTen, PointsTen, VecRot
+    from util.math import TransTen, PointsTen, VecRot, angles_to_axis
 
     parser = argparse.ArgumentParser(description="Render an image.")
    
@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--rot",
-        help="The rotations in angle axis form, separated by commas",
+        help="The rotations in euler angles form, separated by commas, in degrees",
     )
 
     args = parser.parse_args()
@@ -78,7 +78,11 @@ if __name__ == "__main__":
     if args.rot is not None:
         tokens = args.rot.split(",")
         assert(len(tokens) == 3)
-        r = VecRot(float(tokens[0]), float(tokens[1]), float(tokens[2])).to_ten(device=device)
+        rx = math.radians(float(tokens[0]))
+        ry = math.radians(float(tokens[1]))
+        rz = math.radians(float(tokens[2]))
+        r = angles_to_axis(rx, ry, rz)
+        # r = VecRot().to_ten(device=device)
 
     t = TransTen(xt, yt)
     model = splat.render(base_points, r, t, mask, sigma=1.8)

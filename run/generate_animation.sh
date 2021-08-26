@@ -15,10 +15,10 @@ Y=0;
 Z=0;
 TX=-1;
 TY=-1;
-TT=$((2/360))
+TT=$((1/3600))
 IDX=0;
 
-for i in {1..360}
+for i in {1..3600}
 do
 	python ../render.py --rot $X,$Y,$Z --obj $2 --sigma $4
 	a="renderer.fits"
@@ -35,7 +35,7 @@ done
 
 let IDX=0;
 
-for i in {1..360}
+for i in {1..3600}
 do
 	a="renderer.fits"
 	python ../run.py --load $1 --image animation_in/`printf %04d.%s ${IDX%.*} ${a##*.}` --points $3 --sigma $4 --no-cuda
