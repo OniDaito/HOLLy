@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--rot",
-        help="The object file to render",
+        help="The rotations in angle axis form, separated by commas",
     )
 
     args = parser.parse_args()

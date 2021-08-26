@@ -20,10 +20,10 @@ IDX=0;
 
 for i in {1..360}
 do
-	python ../render.py --fits --rots $X $Y $Z --obj $2 --sigma $4
-	a="gen.fits"
+	python ../render.py --rot $X,$Y,$Z --obj $2 --sigma $4
+	a="renderer.fits"
 	mv $a animation_in/`printf %04d.%s ${IDX%.*} ${a##*.}`
-	a="gen.jpg"
+	a="renderer.jpg"
 	mv $a animation_in/`printf %04d.%s ${IDX%.*} ${a##*.}`
 	let IDX="$IDX+1"
 	let X="$X+1"
@@ -37,7 +37,7 @@ let IDX=0;
 
 for i in {1..360}
 do
-	a="gen.fits"
+	a="renderer.fits"
 	python ../run.py --load $1 --image animation_in/`printf %04d.%s ${IDX%.*} ${a##*.}` --points $3 --sigma $4 --no-cuda
 	a="guess.jpg"
 	mv $a animation_out/`printf %04d.%s ${IDX%.*} ${a##*.}`
