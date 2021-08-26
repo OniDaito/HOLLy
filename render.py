@@ -81,7 +81,7 @@ if __name__ == "__main__":
         rx = math.radians(float(tokens[0]))
         ry = math.radians(float(tokens[1]))
         rz = math.radians(float(tokens[2]))
-        r = angles_to_axis(rx, ry, rz)
+        r = angles_to_axis(rx, ry, rz).to_ten(device=device)
         # r = VecRot().to_ten(device=device)
 
     t = TransTen(xt, yt)
