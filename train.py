@@ -60,6 +60,8 @@ def calculate_loss(args, target: torch.Tensor, output: torch.Tensor):
         A loss object
     """
 
+    # Removed the masked loss and stuck with the basic one as it gives a cleaner
+    # final model and didn't really fix the double headed problem.
     #target_masked = (target > args.mask_thresh).float()
     #target = torch.mul(target, target_masked)
 
