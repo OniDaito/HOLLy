@@ -60,13 +60,15 @@ def calculate_loss(args, target: torch.Tensor, output: torch.Tensor):
         A loss object
     """
 
-    target_masked = (target > args.mask_thresh).float()
-    target = torch.mul(target, target_masked)
+    #target_masked = (target > args.mask_thresh).float()
+    #target = torch.mul(target, target_masked)
 
-    output = output.reshape(args.batch_size, 1, args.image_size, args.image_size)
+    #output = output.reshape(args.batch_size, 1, args.image_size, args.image_size)
 
-    masked_output = torch.mul(output, target_masked)
-    loss = F.l1_loss(masked_output, target, reduction="sum")
+    #masked_output = torch.mul(output, target_masked)
+    #loss = F.l1_loss(masked_output, target, reduction="sum")
+    loss = F.l1_loss(output, target, reduction="sum")
+
     return loss
 
 
