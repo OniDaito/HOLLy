@@ -18,7 +18,6 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 import torch.optim as optim
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 import numpy as np
 import math
 import random
@@ -39,14 +38,12 @@ from util.image import NormaliseNull, NormaliseTorch
 from util.math import PointsTen
 
 
-def calculate_loss(args, target: torch.Tensor, output: torch.Tensor):
+def calculate_loss(target: torch.Tensor, output: torch.Tensor):
     """
     Our loss function, used in train and test functions.
 
     Parameters
     ----------
-    args : dict
-        The arguments object created in __main__
 
     target : torch.Tensor
         The target, properly shaped.
@@ -60,17 +57,7 @@ def calculate_loss(args, target: torch.Tensor, output: torch.Tensor):
         A loss object
     """
 
-    # Removed the masked loss and stuck with the basic one as it gives a cleaner
-    # final model and didn't really fix the double headed problem.
-    #target_masked = (target > args.mask_thresh).float()
-    #target = torch.mul(target, target_masked)
-
-    #output = output.reshape(args.batch_size, 1, args.image_size, args.image_size)
-
-    #masked_output = torch.mul(output, target_masked)
-    #loss = F.l1_loss(masked_output, target, reduction="sum")
     loss = F.l1_loss(output, target, reduction="sum")
-
     return loss
 
 
@@ -232,7 +219,6 @@ def train(
     buffer_test,
     data_loader,
     optimiser,
-    use_scheduler=False,
 ):
     """
     Now we've had some setup, lets do the actual training.
@@ -262,14 +248,6 @@ def train(
     """
 
     model.train()
-    scheduler = ReduceLROnPlateau(
-        optimiser,
-        mode="min",
-        factor=0.1,
-        patience=10,
-        threshold=0.0001,
-        threshold_mode="abs",
-    )
 
     # Which normalisation are we using?
     normaliser = NormaliseNull()
@@ -304,7 +282,7 @@ def train(
 
             output = normaliser.normalise(model(target_shaped, points))
 
-            loss = calculate_loss(args, target_shaped, output)
+            loss = calculate_loss(target_shaped, output)
             loss.backward()
             lossy = loss.item()
             optimiser.step()
@@ -354,14 +332,13 @@ def train(
                     epoch,
                     batch_idx,
                     loss,
+                    sigma,
+                    args,
                     args.savedir,
                     args.savename,
                 )
 
         buffer_train.set.shuffle()
-        # TODO - This loss should be on the validation set but for now...
-        if use_scheduler:
-            scheduler.step(loss)
 
     # Save a final points file once training is complete
     S.save_points(points, args.savedir, epoch, batch_idx)
@@ -511,12 +488,8 @@ def init(args, device):
         set_train.save(args.savedir + "/train_set.pickle")
         data_loader.save(args.savedir + "/train_data.pickle")
 
-    plr = args.lr
-    if args.plr is not None:
-        plr = args.plr
     variables = []
     variables.append({"params": model.parameters()})
-    variables.append({"params": points.data, "lr": plr})
     optimiser = optim.AdamW(variables, lr=args.lr)
     print("Starting new model")
 
@@ -530,8 +503,7 @@ def init(args, device):
         buffer_train,
         buffer_test,
         data_loader,
-        optimiser,
-        use_scheduler=args.scheduler
+        optimiser
     )
 
     save_model(model, args.savedir + "/model.tar")
@@ -545,7 +517,6 @@ if __name__ == "__main__":
         "--batch-size",
         type=int,
         default=20,
-        metavar="N",
         help="input batch size for training \
                           (default: 20)",
     )
@@ -553,29 +524,13 @@ if __name__ == "__main__":
         "--epochs",
         type=int,
         default=10,
-        metavar="N",
         help="number of epochs to train (default: 10)",
     )
     parser.add_argument(
         "--lr",
         type=float,
         default=0.0004,
-        metavar="LR",
         help="learning rate (default: 0.0004)",
-    )
-    parser.add_argument(
-        "--mask-thresh",
-        type=float,
-        default=0.05,
-        metavar="LR",
-        help="Threshold for what we consider in the loss \
-                        (default: 0.05)",
-    )
-    parser.add_argument(
-        "--plr",
-        type=float,
-        default=None,
-        help="Learning rate for points (default: The same as the learning rate).",
     )
     parser.add_argument(
         "--spawn-rate",
@@ -647,12 +602,6 @@ if __name__ == "__main__":
         help="Normalise with torch basic intensity divide",
     )
     parser.add_argument(
-        "--scheduler",
-        action="store_true",
-        default=False,
-        help="Use a scheduler on the loss.",
-    )
-    parser.add_argument(
         "--seed", type=int, default=1, metavar="S", help="random seed (default: 1)"
     )
     parser.add_argument(
@@ -700,7 +649,6 @@ if __name__ == "__main__":
         "--save-interval",
         type=int,
         default=1000,
-        metavar="N",
         help="how many batches to wait before saving.",
     )
     parser.add_argument(

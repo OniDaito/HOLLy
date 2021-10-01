@@ -12,13 +12,10 @@ deal with checkpoints.
 
 import torch
 import torch.optim as optim
-import math
-from net.net import Net
-from net.renderer import Splat
 
 
 def save_checkpoint(
-    model, points, optimiser, epoch, batch_idx, loss, savedir, savename
+    model, points, optimiser, epoch, batch_idx, loss, sigma, args, savedir, savename
 ):
     """
     Saving a checkpoint out along with optimizer and other useful
@@ -39,6 +36,10 @@ def save_checkpoint(
         The batch_idx we got to during training
     loss:
         The current loss
+    sigma : float
+        The current sigma
+    args : args object
+        The args object this model was running with
     savedir : str
         The path to save to
     savename: str
@@ -56,7 +57,9 @@ def save_checkpoint(
             "model_state_dict": model.state_dict(),
             "points": points,
             "batch_idx": batch_idx,
-            "optimizer_state_dict": optimiser.state_dict(),
+            "sigma": sigma,
+            "args": args,
+            "optimiser_state_dict": optimiser.state_dict(),
             "loss": loss,
         },
         savedir + "/" + savename,
@@ -83,58 +86,47 @@ def save_model(model, path):
 
 
 def load_checkpoint(
-    savedir, savename, device, lr=0.0004, evaluation=False, predict_sigma=False
+    model, savedir, savename, device="cpu"
 ):
     """Load our checkpoint, given the full path to the checkpoint.
-    We can load for eval or continue training, so sometimes we ignore
-    the optimizer.
+    A model must be loaded and passed in already. We set the parameters
+    of this model from these stored in the checkpoint.
 
     Parameters
     ----------
+    model : Model
+        A model created blank or loaded with load_model
     savedir : str
         The directory of the save files
     savename : str
         The name of the save file
-    device : str
-        CUDA or cpu?
-    lr : float
-        The learning rate (default 0.0004)
-    evaluation: book
-        Load in evaluation mode (default False)
-    predict_sigma: bool
-        Does this model predict sigma
-
+    device : 
+        We must pass the device in
     Returns
     -------
-    None
+    tuple
 
     """
 
-    splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
-    model = Net(splat, predict_sigma=predict_sigma)
     checkpoint = torch.load(savedir + "/" + savename, map_location=device)
-    if hasattr(checkpoint, "model_state_dict"):
-        model.load_state_dict(checkpoint["model_state_dict"])
-    elif hasattr(checkpoint, "model_main_state_dict"):
-        # older versions had model_main
-        model.load_state_dict(checkpoint["model_main_state_dict"])
+    model.load_state_dict(checkpoint["model_state_dict"])
 
-    points = checkpoint["points"]
-    points = points.data.to(device)
-
-    model = model.to(device)
-
-    if evaluation is True:
-        return (model, points)
-
-    optimizer = optim.Adam(model.parameters(), lr=lr)
     # this line seems to fail things :/
     # optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     epoch = checkpoint["epoch"]
     loss = checkpoint["loss"]
     batch_idx = checkpoint["batch_idx"]
+    args = checkpoint["args"]
+    points = checkpoint["points"]
+    optimiser = optim.Adam(model.parameters(), lr=args.lr)
 
-    return (model, points, optimizer, epoch, batch_idx, loss)
+    points = points.data.to(device)
+    model = model.to(device)
+    model.predict_sigma = args.predict_sigma
+    model.predict_translate = not args.no_translate
+    model.max_trans = args.max_trans
+
+    return (model, points, optimiser, epoch, batch_idx, loss, args)
 
 
 def load_model(path, device="cpu"):

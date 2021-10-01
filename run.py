@@ -129,11 +129,12 @@ if __name__ == "__main__":
     if args.load and os.path.isfile(args.load + "/checkpoint.pth.tar"):
         # (savedir, savename) = os.path.split(args.load)
         # print(savedir, savename)
-        (model, points) = load_checkpoint(
-            args.load, "checkpoint.pth.tar", device, evaluation=True
-        )
         model = load_model(args.load + "/model.tar")
+        (model, points, _, _, _, _, prev_args) = load_checkpoint(
+            args.load, "checkpoint.pth.tar", device
+        )
         model = model.to(device)
+        model.eval()
     else:
         print("--load must point to a run directory.")
         sys.exit(0)

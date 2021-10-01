@@ -31,7 +31,7 @@ from util.image import NormaliseTorch, NormaliseNull
 from util.math import VecRotTen, VecRot, TransTen, PointsTen
 
 
-def angle_eval(args, model, points, batch_size, device):
+def angle_eval(args, model, points, prev_args, device):
     """For every angle, save the in and out so we can assess where the
     network is failing."""
     xt = 0.0
@@ -90,7 +90,7 @@ def angle_eval(args, model, points, batch_size, device):
             save_image(result, args.savedir + "/" + "eval_in_" + str(idx).zfill(3) + ".jpg")
 
             target = result.reshape(1, 128, 128)
-            target = target.repeat(batch_size, 1, 1, 1)
+            target = target.repeat(prev_args.batch_size, 1, 1, 1)
             target = target.to(device)
             target = normaliser.normalise(target)
 
@@ -98,7 +98,7 @@ def angle_eval(args, model, points, batch_size, device):
             # and keep working out the gradient cos pytorch weirdness
             model.set_sigma(args.sigma)
             output = model.forward(target, points)
-            output = normaliser.normalise(output.reshape(batch_size, 1, 128, 128))
+            output = normaliser.normalise(output.reshape(prev_args.batch_size, 1, 128, 128))
             loss = F.l1_loss(output, target)
 
             output = torch.squeeze(output.cpu()[0])
@@ -109,7 +109,7 @@ def angle_eval(args, model, points, batch_size, device):
             S.write_immediate(loss, "eval_loss", 0, 0,  idx)
 
 
-def basic_eval(args, model, points, batch_size, device):
+def basic_eval(args, model, points, prev_args, device):
     """ Our basic evaluation step. """
     xr = 0.0
     yr = 0.0
@@ -135,7 +135,7 @@ def basic_eval(args, model, points, batch_size, device):
     t = TransTen(xt, yt)
 
     normaliser = NormaliseNull()
-    if args.normalise_basic:
+    if prev_args.normalise_basic:
         normaliser = NormaliseTorch()
 
     # Setup our splatting pipeline which is added to both dataloader
@@ -154,7 +154,7 @@ def basic_eval(args, model, points, batch_size, device):
     save_image(result.clone().cpu(), args.savedir + "/" + "eval_single_in.jpg")
 
     target = result.reshape(1, 128, 128)
-    target = target.repeat(batch_size, 1, 1, 1)
+    target = target.repeat(prev_args.batch_size, 1, 1, 1)
     target = target.to(device)
     target = normaliser.normalise(target)
 
@@ -162,7 +162,7 @@ def basic_eval(args, model, points, batch_size, device):
     # and keep working out the gradient cos pytorch weirdness
     model.set_sigma(args.sigma)
     output = model.forward(target, points)
-    output = normaliser.normalise(output.reshape(batch_size, 1, 128, 128))
+    output = normaliser.normalise(output.reshape(prev_args.batch_size, 1, 128, 128))
     loss = F.l1_loss(output, target)
     print("Loss :", loss)
     print("Rotations returned:", model.get_rots())
@@ -205,28 +205,24 @@ def evaluate(args, device, animate=False):
     S.on(args.savedir)
     model = None
     points = None
+    model = load_model(args.savedir + "/model.tar", device)
 
     if os.path.isfile(args.savedir + "/" + args.savename):
-        (model, points) = load_checkpoint(
-            args.savedir, args.savename, device, evaluation=True
+        (model, points, _, _, _, _, prev_args) = load_checkpoint(
+            model, args.savedir, args.savename, device
         )
-        model = load_model(args.savedir + "/model.tar", device)
         model.to(device)
         print("Loaded model", model)
     else:
         print("Error - need to pass in a model")
         return
 
-    batch_size = model._final.size()[0]
-    print("Batch Size :", batch_size)
-
     model.eval()
     random.seed()
-    if args.predict_sigma:
-        model.predict_sigma = True
-    basic_eval(args, model, points, batch_size, device)
+    basic_eval(args, model, points, prev_args, device)
+
     if animate:
-        angle_eval(args, model, points, batch_size, device)
+        angle_eval(args, model, points, prev_args, device)
     S.close()
 
 
@@ -236,18 +232,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="PyTorch Shaper Eval")
     parser.add_argument(
         "--no-cuda", action="store_true", default=False, help="disables CUDA training"
-    )
-    parser.add_argument(
-        "--predict-sigma",
-        action="store_true",
-        default=False,
-        help="Does this model predict sigma",
-    )
-    parser.add_argument(
-        "--normalise-basic",
-        action="store_true",
-        default=False,
-        help="Use a basic normaliser",
     )
     parser.add_argument(
         "--seed", type=int, default=1, metavar="S", help="random seed (default: 1)"

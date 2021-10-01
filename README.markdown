@@ -45,6 +45,11 @@ If you want some fancy formatted results or if you are running the tl;dr script,
 * [Imagemagick](https://imagemagick.org/index.php)
 * [ffmpeg](https://ffmpeg.org/)
 
+Finally, in order to view the model the network has derived, you'll need a program capable of displaying obj or ply files. These are pretty numerous, but here are a few we use:
+
+* [meshlab](https://www.meshlab.net/)
+* [blender(https://www.blender.org/)
+
 Chances are, if you are running a Linux distribution, you will have these already and if not, they'll be in your repository management system (like apt or pacman).
 
 All of the python requirements are listed in the requirements.txt file (there aren't too many).
@@ -175,6 +180,10 @@ The data used in the paper comes from [Suliana Manley's research group](https://
 
 ... filling the missing steps with the other sigma levels. This takes quite a while, even with only 10 augmentations. The pre-rendered data can be found on [Zenodo](https://zenodo.org/record/4751057) complete the with the full instructions for generating it.
 
+### Energy Usage
+
+The estimated energy use to train a simulated model is 2.1kWh based on a measurement of 623.4kWh over 166 days. In this period, 298 models were trained and evaluated. This was confirmed by cross-checking against the wattage of the GPU and the time spent to generate an average model.
+
 ## Outputs
 
 Once you have a trained network, you can generate the final outputs using the *generate_stats.sh* script found in the *run* directory.
@@ -232,12 +241,6 @@ When running train.py, there are a number of options one can choose.
     --lr
     Learning rate (default: 0.0004).
 
-    --mask-thresh
-    Threshold for what we consider in the loss (default: 0.05)
-
-    --plr
-    Learning rate for points (default: same as the learning rate).
-
     --spawn-rate
     Probabilty of spawning a point (default: 1.0).
 
@@ -268,9 +271,6 @@ When running train.py, there are a number of options one can choose.
     --normalise-basic
     Normalise with torch basic intensity divide.
 
-    --scheduler
-    Use a scheduler on the loss.
-
     --seed
     Random seed (default: 1).
 
@@ -295,7 +295,7 @@ When running train.py, there are a number of options one can choose.
     --load
     A checkpoint file to load in order to continue training.
 
-    "--savename
+    --savename
     The name for checkpoint save file.
 
     --savedir
