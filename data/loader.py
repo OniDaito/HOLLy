@@ -5,7 +5,7 @@
 /_/ \___/_/   /___/\___/___/___/_/|_/\___/___/      # noqa
 Author : Benjamin Blundell - k1803390@kcl.ac.uk
 
-dataload.py -The Dataloader is responsible for generating data
+loader.py -The Dataloader is responsible for generating data
 for the DataSet and DataBuffer classes. It either generates on demand
 or reads images from the disk. It isn't used directly, rather it works
 as follows:
@@ -158,8 +158,8 @@ class Loader(object):
         self.available = array.array("L")
 
         # Our ground truth object points
-        self.gt_points = array.array("d")
-
+        self.gt_points = Points
+        
         # How far do we translate?
         self.translate = translate
         self.max_trans = max_trans
@@ -194,9 +194,9 @@ class Loader(object):
         from util.plyobj import load_obj, load_ply
 
         if "obj" in objpath:
-            self.gt_points = load_obj(objpath=objpath)
+            self.gt_points = load_obj(objpath=objpath).to_array()
         elif "ply" in objpath:
-            self.gt_points = load_ply(objpath)
+            self.gt_points = load_ply(objpath).to_array()
 
         self._create_basic()
 

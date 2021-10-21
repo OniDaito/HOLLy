@@ -10,6 +10,7 @@ pipeline and a few other places.
 
 """
 
+from array import array
 import math
 import torch
 import random
