@@ -158,8 +158,8 @@ class Loader(object):
         self.available = array.array("L")
 
         # Our ground truth object points
-        self.gt_points = Points
-        
+        self.gt_points = Points()
+
         # How far do we translate?
         self.translate = translate
         self.max_trans = max_trans
