@@ -31,6 +31,7 @@ class Stats(object):
 
     def on(self, savedir: str):
         self.savedir = savedir
+        self._error_message = False
         path = os.path.normpath(savedir)
         parts = path.split(os.sep)
         self.exp_name = parts[-1]  # WARNING - overwrite potential in the REDIS
@@ -66,7 +67,7 @@ will be recorded."
 
     def close(self):
         """ Make sure we write to the DB. """
-        pass
+        self._error_message = False
         # TODO - will probably get rid
         # self.db.close()
         # Zip now happens in the generate_stats.sh script
@@ -183,10 +184,9 @@ will be recorded."
         try:
             self._conv(obj, name, epoch, step, idx)
         except Exception:
-            pass
-            # This is naughty but until I find a way for it to be less
-            # verbose I'm leaving it in for this version.
-            #print("No database to store statistic.")
+            if not self._error_message:
+                print("No database to store statistic. Stats will not be stored.")
+                self._error_message = True
 
     def save_jpg(
         self,
@@ -238,6 +238,9 @@ will be recorded."
         """Save the points as either an obj or ply file."""
         if not os.path.exists(savedir + "/objs"):
             os.makedirs(savedir + "/objs/")
+
+        if not os.path.exists(savedir + "/plys"):
+            os.makedirs(savedir + "/plys/")
 
         path_obj = (
             savedir + "/objs/shape_e" + str(epoch).zfill(3) + "_s" + str(step).zfill(5)
@@ -294,4 +297,4 @@ def update(epoch: int, set_size: int, batch_size: int, step: int):
 
 
 def close():
-    pass
+    stat.close()

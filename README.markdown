@@ -6,17 +6,39 @@
 
 A [PyTorch](https://pytorch.org/) based neural network program designed to recontruct single molecules in 3D from a series of 2D storm images.
 
-The goal of this network is to take a set of 2D representations of a molecule (or other simulated object) and create a 3D pointcloud of the molecule. We predict the pose and structure using a Convolutional Neural Network.
+The goal of this network is to take a set of 2D representations of a molecule (or other simulated object) and create a 3D pointcloud of the molecule. We predict the pose and structure using a Convolutional Neural Network. 
 
 ## Overview
 
-HOLLy takes a number of images, or generates images from a ground-truth point-cloud, trains on these attempting to improve it's own internal representation of what it thinks the ground-truth object is. At the end of training, an obj or ply file will be produced, representing the object the network converged upon.
+HOLLy takes a number of images (it can also generate images from a ground-truth point-cloud) and trains on these attempting to improve it's own internal representation of what it thinks the ground-truth object is. At the end of training, an *obj* or **ply* file will be produced, representing the object the network converged upon.
 
 HOLLy is split into *train.py* and *run.py* with the actual net stored in in *net/net.py*. *eval.py* will evaluate a trained network, creating statistics and visualistions. 
 
 *net/renderer.py* contains the code for the differentiable renderer. *data/loader.py*, along with *data/buffer.py* and *data/batcher.py* create our simulated data for all the tests, including adding noise. *data/imageload.py* is similar, but for pre-rendered images.
 
+(The diagram below is animated and may take a little time to appear).
 ![Overview diagram](https://shutr.benjamin.computer/static/shutr_files/original/diagram.gif)
+
+## Publication
+
+[3D Structure from 2D Microscopy images using Deep Learning - Frontiers in Bioinformatics](https://www.frontiersin.org/articles/10.3389/fbinf.2021.740342/abstract)
+
+ @article{blundell3DStructure2D01,
+   title = {{{3D Structure}} from {{2D Microscopy}} Images Using {{Deep Learning}}},
+   author = {Blundell, Benjamin James and Rosten, Ed and Ch'ng, QueeLim and Cox, Susan and Manley, Suliana and Sieben, Christian},
+   year = {2021},
+   journal = {Frontiers in Bioinformatics},
+   volume = {0},
+   publisher = {{Frontiers}},
+   issn = {2673-7647},
+   doi = {10.3389/fbinf.2021.740342},
+   copyright = {All rights reserved},
+   langid = {english},
+ }
+
+### Citing with Bibtex
+
+See the CITATION.cff file.
 
 ## Installation
 
@@ -221,12 +243,9 @@ Individual tests can be run as follows:
 
     python -m unittest test.data.Data.test_wobble
 
-## Our published paper and data
-
-Our paper "3D Structure from SMLM images using Deep Learning" is under review at the moment and hopefully will be available soon.
+## Datasets in the Publication
 
 The CEP152 data we used in the paper with HOLLy can be found on Zenodo at [https://zenodo.org/record/4751057](https://zenodo.org/record/4751057) and the results we mention in the paper can also be downloaded from Zenodo at [https://zenodo.org/record/4836173](https://zenodo.org/record/4836173).
-
 
 ## Command line and configuration options
 
