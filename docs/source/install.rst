@@ -24,7 +24,6 @@ via the included docker
 There is a dockerfile included in *docker/holly* that will create a container that you can use to train our network.
 
 Assuming you have docker installed, you can create the docker container like so:
-
 ::
     docker build -t holly docker/holly
 

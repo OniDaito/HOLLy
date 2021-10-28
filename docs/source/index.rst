@@ -1,7 +1,7 @@
 Welcome to HOLLy's documentation!
 ===================================
 
-**HOLLy** is a `PyTorch <https://pytorch.org>` based program that attempts to recreate 3D structure from a series of 2D *Single Molecule Localisation Microscopy* images.
+**HOLLy** is a `PyTorch <https://pytorch.org>`_ based program that attempts to recreate 3D structure from a series of 2D *Single Molecule Localisation Microscopy* images.
 
 .. note::
 
