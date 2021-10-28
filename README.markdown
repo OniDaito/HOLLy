@@ -1,6 +1,9 @@
 # HOLLy - Hypothesised Object from Light Localisations
 ## A neural network for 3D Reconstruction from 2D Microscopy images
 
+[![DOI](https://zenodo.org/badge/369292185.svg)](https://zenodo.org/badge/latestdoi/369292185)
+
+
 ![Evolving structure](https://shutr.benjamin.computer/static/shutr_files/original/num2021_05_14_cep_0.gif)
 ![Bunny](https://shutr.benjamin.computer/static/shutr_files/original/file.gif)
 
