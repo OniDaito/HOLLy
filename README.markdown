@@ -19,22 +19,26 @@ HOLLy is split into *train.py* and *run.py* with the actual net stored in in *ne
 (The diagram below is animated and may take a little time to appear).
 ![Overview diagram](https://shutr.benjamin.computer/static/shutr_files/original/diagram.gif)
 
+## Documentation
+
+This readme covers most of the details of HOLLy, but we also have more documentation available at [Read The Docs](https://holly.readthedocs.io/en/latest/).
+
 ## Publication
 
 [3D Structure from 2D Microscopy images using Deep Learning - Frontiers in Bioinformatics](https://www.frontiersin.org/articles/10.3389/fbinf.2021.740342/abstract)
 
- @article{blundell3DStructure2D01,
-   title = {{{3D Structure}} from {{2D Microscopy}} Images Using {{Deep Learning}}},
-   author = {Blundell, Benjamin James and Rosten, Ed and Ch'ng, QueeLim and Cox, Susan and Manley, Suliana and Sieben, Christian},
-   year = {2021},
-   journal = {Frontiers in Bioinformatics},
-   volume = {0},
-   publisher = {{Frontiers}},
-   issn = {2673-7647},
-   doi = {10.3389/fbinf.2021.740342},
-   copyright = {All rights reserved},
-   langid = {english},
- }
+    @article{blundell3DStructure2D01,
+        title = {{{3D Structure}} from {{2D Microscopy}} Images Using {{Deep Learning}}},
+        author = {Blundell, Benjamin James and Rosten, Ed and Ch'ng, QueeLim and Cox, Susan and Manley, Suliana and Sieben, Christian},
+        year = {2021},
+        journal = {Frontiers in Bioinformatics},
+        volume = {0},
+        publisher = {{Frontiers}},
+        issn = {2673-7647},
+        doi = {10.3389/fbinf.2021.740342},
+        copyright = {All rights reserved},
+        langid = {english},
+    }
 
 ### Citing with Bibtex
 
