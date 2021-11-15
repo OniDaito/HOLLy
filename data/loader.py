@@ -379,25 +379,21 @@ class Loader(object):
                 for j in range(self.num_augment):
                     rot_a = VecRot(0, 0, math.pi * 2.0 * random.random())
 
-                    # q0 = Quaternion(axis=rot.get_normalised(),
-                    #                 radians=rot.get_length())
-                    # q1 = Quaternion(axis=rot_a.get_normalised(),
-                    #                 radians=rot_a.get_length())
-                    # q2 = q0 * q1
+                    q0 = Quaternion(axis=rot.get_normalised(),
+                                     radians=rot.get_length())
+                    q1 = Quaternion(axis=rot_a.get_normalised(),
+                                     radians=rot_a.get_length())
+                    q2 = q1 * q0
 
-                    #rot_f = VecRot(q2.axis[0] * q2.radians,
-                    #               q2.axis[1] * q2.radians,
-                    #               q2.axis[2] * q2.radians)
-
-                    # What transformation do we really store here, as we have two!
-                    # Our whole pipeline relies on there being one complete transform
-                    # Composing the 3D base, then the 2D one doesn't work.
-                    # To get what we want we modify the points by the initial rotation,
-                    # keeping the extra augment till later.
-
-                    self.transform_vars.append(rot_a.x)
-                    self.transform_vars.append(rot_a.y)
-                    self.transform_vars.append(rot_a.z)
+                    rot_f = VecRot(q2.axis[0] * q2.radians,
+                                   q2.axis[1] * q2.radians,
+                                   q2.axis[2] * q2.radians)
+                    
+                    # TODO - is rot_f actually correct. In theory it should be?
+    
+                    self.transform_vars.append(rot_f.x)
+                    self.transform_vars.append(rot_f.y)
+                    self.transform_vars.append(rot_f.z)
                     self.transform_vars.append(tx)
                     self.transform_vars.append(ty)
 
