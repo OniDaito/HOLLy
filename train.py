@@ -57,7 +57,7 @@ def calculate_loss(target: torch.Tensor, output: torch.Tensor):
         A loss object
     """
 
-    loss = F.l1_loss(output, target, reduction="sum")
+    loss = F.l1_loss(output, target, reduction="mean")
     return loss
 
 
