@@ -179,6 +179,9 @@ class Points:
         self.size = len(self.data)
         return self
 
+    def to_array(self) -> array:
+        return array(self.data)
+
     def __next__(self) -> Point:
         if self.counter >= self.size:
             self.counter = 0
