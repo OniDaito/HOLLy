@@ -180,7 +180,7 @@ class Points:
         return self
 
     def to_array(self) -> array:
-        return array('d', self.data)
+        return array('d', self.get_chunk())
 
     def __next__(self) -> Point:
         if self.counter >= self.size:
