@@ -15,7 +15,7 @@ IDX=0;
 cat data.qua | grep --line-buffered '.*' | while read LINE0
 do
     IFS=" " read -a quats <<< $LINE0
-	python ../render.py --quat ${quats[0]} ${quats[1]} ${quats[2]} ${quats[3]} --obj $2 --sigma $4
+	python ../render.py --quat ${quats[0]},${quats[1]},${quats[2]},${quats[3]} --obj $2 --sigma $4
 	a="renderer.fits"
 	mv $a animation_in/`printf %04d.%s ${IDX%.*} ${a##*.}`
 	a="renderer.jpg"
