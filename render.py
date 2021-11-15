@@ -25,6 +25,9 @@ if __name__ == "__main__":
     rot : string
         The rotation in angle/axis format - X,Y,Z.
         Pass in as a string with comma separation - default none.
+    quat : string
+        The rotation in quaternion format - W,X,Y,Z.
+        Pass in as a string with comma separation - default none.
 
     Returns
     -------
@@ -82,7 +85,7 @@ if __name__ == "__main__":
     r = VecRot(0, 0, 0).to_ten(device=device)
 
     if args.rot is not None:
-        tokens = args.rot.split(",")
+        tokens = args.rot.replace('"', "").split(",")
         assert(len(tokens) == 3)
         rx = math.radians(float(tokens[0]))
         ry = math.radians(float(tokens[1]))
@@ -90,8 +93,8 @@ if __name__ == "__main__":
         r = angles_to_axis(rx, ry, rz).to_ten(device=device)
         # r = VecRot().to_ten(device=device)
 
-    if args.rot is not None:
-        tokens = args.rot.split(",")
+    if args.quat is not None:
+        tokens = args.quat.replace('"', "").split(",")
         assert(len(tokens) == 4)
         qw = math.radians(float(tokens[0]))
         qx = math.radians(float(tokens[1]))
@@ -99,7 +102,7 @@ if __name__ == "__main__":
         qz = math.radians(float(tokens[3]))
         q = Quaternion(qw, qx, qy, qz)
         v = q.get_axis()
-        a = q.radians()
+        a = q.radians
         v[0] *= a
         v[1] *= a
         v[2] *= a
