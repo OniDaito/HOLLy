@@ -134,7 +134,7 @@ def test(
             )
 
             rots_out.append(model.get_rots())
-            loss = calculate_loss(args, target_shaped, output)
+            loss = calculate_loss(target_shaped, output)
 
             # Just save one image for now - first in the batch
             if batch_idx == image_choice:
