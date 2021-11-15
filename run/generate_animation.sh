@@ -10,27 +10,17 @@ mkdir ./animation_in
 rm -rf ./animation_out
 mkdir ./animation_out
 
-X=0;
-Y=0;
-Z=0;
-TX=-1;
-TY=-1;
-TT=$((1/3600))
 IDX=0;
 
-for i in {1..3600}
+cat data.qua | grep --line-buffered '.*' | while read LINE0
 do
-	python ../render.py --rot $X,$Y,$Z --obj $2 --sigma $4
+    IFS=" " read -a quats <<< $LINE0
+	python ../render.py --quat ${quats[0]} ${quats[1]} ${quats[2]} ${quats[3]} --obj $2 --sigma $4
 	a="renderer.fits"
 	mv $a animation_in/`printf %04d.%s ${IDX%.*} ${a##*.}`
 	a="renderer.jpg"
 	mv $a animation_in/`printf %04d.%s ${IDX%.*} ${a##*.}`
 	let IDX="$IDX+1"
-	let X="$X+1"
-	let Y="$Y+1"
-	let Z="$Z+1"
-	let TX=$(($TX + $TT))
-	let TY=$(($TY + $TT))
 done
 
 let IDX=0;

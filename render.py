@@ -38,6 +38,7 @@ if __name__ == "__main__":
     from util.image import save_image, save_fits
     from net.renderer import Splat
     from util.math import TransTen, PointsTen, VecRot, angles_to_axis
+    from pyquaternion import Quaternion
 
     parser = argparse.ArgumentParser(description="Render an image.")
    
@@ -56,6 +57,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--rot",
         help="The rotations in euler angles form, separated by commas, in degrees",
+    )
+
+    parser.add_argument(
+        "--quat",
+        help="The rotations as a Quaternion, W, X, Y and Z",
     )
 
     args = parser.parse_args()
@@ -83,6 +89,21 @@ if __name__ == "__main__":
         rz = math.radians(float(tokens[2]))
         r = angles_to_axis(rx, ry, rz).to_ten(device=device)
         # r = VecRot().to_ten(device=device)
+
+    if args.rot is not None:
+        tokens = args.rot.split(",")
+        assert(len(tokens) == 4)
+        qw = math.radians(float(tokens[0]))
+        qx = math.radians(float(tokens[1]))
+        qy = math.radians(float(tokens[2]))
+        qz = math.radians(float(tokens[3]))
+        q = Quaternion(qw, qx, qy, qz)
+        v = q.get_axis()
+        a = q.radians()
+        v[0] *= a
+        v[1] *= a
+        v[2] *= a
+        r = VecRot(v[0], v[1], v[2]).to_ten(device=device)
 
     t = TransTen(xt, yt)
     model = splat.render(base_points, r, t, mask, sigma=1.8)

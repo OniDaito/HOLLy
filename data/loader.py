@@ -194,9 +194,9 @@ class Loader(object):
         from util.plyobj import load_obj, load_ply
 
         if "obj" in objpath:
-            self.gt_points = load_obj(objpath=objpath).to_array()
+            self.gt_points = load_obj(objpath=objpath).data.to_array()
         elif "ply" in objpath:
-            self.gt_points = load_ply(objpath).to_array()
+            self.gt_points = load_ply(objpath).data.to_array()
 
         self._create_basic()
 
