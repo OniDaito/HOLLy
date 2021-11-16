@@ -131,7 +131,7 @@ if __name__ == "__main__":
         # print(savedir, savename)
         model = load_model(args.load + "/model.tar")
         (model, points, _, _, _, _, prev_args) = load_checkpoint(
-            args.load, "checkpoint.pth.tar", device
+            model, args.load, "checkpoint.pth.tar", device
         )
         model = model.to(device)
         model.eval()
