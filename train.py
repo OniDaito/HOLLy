@@ -463,6 +463,7 @@ def init(args, device):
     points = init_points(
         args.num_points, device=device, deterministic=args.deterministic
     )
+
     model = Net(
         splat_out,
         predict_translate=(not args.no_translate),
@@ -470,18 +471,28 @@ def init(args, device):
         max_trans=args.max_trans
     ).to(device)
 
-    # Load our init points as well, if we are loading the same data
-    # file later on - this is only in initialisation
-    if os.path.isfile(args.savedir + "/points.csv"):
-        print("Loading points file", args.savedir + "/points.csv")
-        tpoints = load_points(args.savedir + "/points.csv")
-        points = PointsTen(device=device)
-        points.from_points(tpoints)
-    else:
-        points = init_points(num_points=args.num_points, device=device)
-        save_points(args.savedir + "/points.csv", points)
+    if args.poseonly:
+        from util.plyobj import load_obj, load_ply
 
-    points.data.requires_grad_(requires_grad=True)
+        if "obj" in args.objpath:
+            points = load_obj(objpath=args.objpath)
+        elif "ply" in args.objpath:
+            points = load_ply(args.objpath)
+        else:
+            raise ValueError("If using poseonly, objpath must be set.")
+    else:
+        # Load our init points as well, if we are loading the same data
+        # file later on - this is only in initialisation
+        if os.path.isfile(args.savedir + "/points.csv"):
+            print("Loading points file", args.savedir + "/points.csv")
+            tpoints = load_points(args.savedir + "/points.csv")
+            points = PointsTen(device=device)
+            points.from_points(tpoints)
+        else:
+            points = init_points(num_points=args.num_points, device=device)
+            save_points(args.savedir + "/points.csv", points)
+
+        points.data.requires_grad_(requires_grad=True)
 
     # Save the training data to disk so we can interrogate it later
     if args.save_train_data:
@@ -633,6 +644,13 @@ if __name__ == "__main__":
         required=False,
     )
     parser.add_argument(
+        "--poseonly",
+        default=False,
+        action="store_true",
+        help="Only optimise the pose. Default false",
+        required=False,
+    )
+    parser.add_argument(
         "--no-sigma",
         default=False,
         action="store_true",
@@ -696,6 +714,7 @@ if __name__ == "__main__":
         help="Path to the obj for generating data",
         required=False,
     )
+    
     parser.add_argument(
         "--train-size",
         type=int,
