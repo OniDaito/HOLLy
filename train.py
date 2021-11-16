@@ -35,7 +35,7 @@ from stats import stats as S
 from net.renderer import Splat
 from net.net import Net
 from util.image import NormaliseNull, NormaliseTorch
-from util.math import PointsTen
+from util.math import Points, PointsTen
 
 
 def calculate_loss(target: torch.Tensor, output: torch.Tensor):
@@ -480,6 +480,9 @@ def init(args, device):
             points = load_ply(args.objpath)
         else:
             raise ValueError("If using poseonly, objpath must be set.")
+        
+        points = points.to_ten(device=device)
+
     else:
         # Load our init points as well, if we are loading the same data
         # file later on - this is only in initialisation
