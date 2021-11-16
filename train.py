@@ -504,6 +504,10 @@ def init(args, device):
 
     variables = []
     variables.append({"params": model.parameters()})
+
+    if not args.poseonly:
+        variables.append({'params': points.data, 'lr': args.lr})
+
     optimiser = optim.AdamW(variables, lr=args.lr)
     print("Starting new model")
 
