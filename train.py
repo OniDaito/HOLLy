@@ -481,7 +481,7 @@ def init(args, device):
         else:
             raise ValueError("If using poseonly, objpath must be set.")
         
-        points = points.to_ten(device=device)
+        points = PointsTen(device=device).from_points(points)
 
     else:
         # Load our init points as well, if we are loading the same data
