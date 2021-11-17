@@ -49,7 +49,7 @@ def angle_eval(args, model, points, prev_args, device):
         rand_rots.append(VecRot(0, 0, 0).random())
 
     normaliser = NormaliseNull()
-    if args.normalise_basic:
+    if prev_args.normalise_basic:
         normaliser = NormaliseTorch()
 
     # Load some base points from an obj
