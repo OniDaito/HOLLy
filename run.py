@@ -30,6 +30,7 @@ from util.loadsave import load_checkpoint, load_model
 from util.plyobj import load_obj, load_ply
 from util.math import PointsTen
 import torch.nn.functional as F
+from util.image import NormaliseTorch, NormaliseNull
 from PIL import Image
 
 
@@ -82,7 +83,7 @@ def file_test(model, device, sigma, input_image):
         # im = gen_baseline(grx, gry, grz, "output.bmp", objpath = args.obj)
 
 
-def image_test(model, points, device, sigma, input_image):
+def image_test(model, points, device, sigma, input_image, normaliser):
     """Test our model by loading an image and seeing how well we
     can match it. We might need to duplicate to match the batch size.
     """
@@ -94,10 +95,10 @@ def image_test(model, points, device, sigma, input_image):
     # like dropout and what not
     with torch.no_grad():
         model.eval()
-        im = input_image.reshape((1, 1, 128, 128))
+        im = normaliser.normalise(input_image.reshape((1, 1, 128, 128)))
         im = im.to(device)
         model.set_sigma(sigma)
-        x = model.forward(im, points)
+        x = normaliser.normalise(model.forward(im, points))
         x = torch.squeeze(x)
         im = torch.squeeze(im)
         loss = F.l1_loss(x, im)
@@ -141,6 +142,10 @@ if __name__ == "__main__":
 
     points = PointsTen(device=device)
 
+    normaliser = NormaliseNull()
+    if prev_args.normalise_basic:
+        normaliser = NormaliseTorch()
+
     # Potentially load a different set of points
     if args.points != "":
         if "ply" in args.points:
@@ -150,7 +155,7 @@ if __name__ == "__main__":
 
     if os.path.isfile(args.image):
         input_image = load_fits(args.image)
-        image_test(model, points, device, args.sigma, input_image)
+        image_test(model, points, device, args.sigma, input_image, normaliser)
     else:
         print("--image must point to a valid fits file.")
         sys.exit(0)

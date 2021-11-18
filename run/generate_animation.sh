@@ -25,7 +25,7 @@ done
 
 let IDX=0;
 
-for i in {1..3600}
+for i in {1..360}
 do
 	a="renderer.fits"
 	python ../run.py --load $1 --image animation_in/`printf %04d.%s ${IDX%.*} ${a##*.}` --points $3 --sigma $4 --no-cuda
