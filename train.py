@@ -304,6 +304,10 @@ def train(
                 # S.watch(output[0], "output")
                 if args.predict_sigma:
                     S.watch(sigma, "sigma_in")
+                
+                # Watch the training rotations too!
+                S.watch(ddata[1], "rotations_in_train")
+                S.watch(model.get_rots(), "rotations_out_train")
 
                 print(
                     "Train Epoch: \

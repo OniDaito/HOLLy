@@ -174,11 +174,15 @@ will be recorded."
             self.R.expire(key, self._redis_ttl)
 
     def update(self, epoch: int, set_size: int, batch_size: int, step: int):
-        idx = epoch * set_size + step * batch_size
-        """ Update all our streams with the current idx value. """
-        for name in self.watching.keys():
-            obj = self.watching[name]
-            self._conv(obj, name, epoch, step, idx)
+        try:
+            idx = epoch * set_size + step * batch_size
+            """ Update all our streams with the current idx value. """
+            for name in self.watching.keys():
+                obj = self.watching[name]
+                self._conv(obj, name, epoch, step, idx)
+        except Exception as e:
+            print("Exception in stats saving")
+            print(e)
 
     def write_immediate(self, obj, name, epoch, step, idx):
         try:
