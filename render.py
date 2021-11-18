@@ -41,6 +41,7 @@ if __name__ == "__main__":
     from util.image import save_image, save_fits
     from net.renderer import Splat
     from util.math import TransTen, PointsTen, VecRot, angles_to_axis
+    from util.image import NormaliseTorch, NormaliseNull
     from pyquaternion import Quaternion
 
     parser = argparse.ArgumentParser(description="Render an image.")
@@ -67,11 +68,26 @@ if __name__ == "__main__":
         help="The rotations as a Quaternion, W, X, Y and Z",
     )
 
+    parser.add_argument(
+        "--norm",
+        default=False,
+        action="store_true",
+        help="Normalise with the basic normaliser.",
+        required=False,
+    )
+
     args = parser.parse_args()
     use_cuda = False
     device = torch.device("cuda" if use_cuda else "cpu")
     base_points = PointsTen(device=device)
     base_points.from_points(plyobj.load_obj(args.obj))
+    
+
+    # Which normalisation are we using?
+    normaliser = NormaliseNull()
+
+    if args.norm:
+        normaliser = NormaliseTorch()
 
     mask = []
     for _ in range(len(base_points)):
@@ -109,6 +125,9 @@ if __name__ == "__main__":
         r = VecRot(v[0], v[1], v[2]).to_ten(device=device)
 
     t = TransTen(xt, yt)
-    model = splat.render(base_points, r, t, mask, sigma=1.8)
+    model = splat.render(base_points, r, t, mask, sigma=args.sigma)
+    model = model.reshape(1, 1, 128, 128)
+    model = normaliser.normalise(model)
+    model = model.squeeze()
     save_image(model, name="renderer.jpg")
     save_fits(model, name="renderer.fits")

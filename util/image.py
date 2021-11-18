@@ -66,7 +66,7 @@ def save_fits(img_tensor, name="ten.fits"):
     hdul.writeto(name)
 
 
-def load_fits(path):
+def load_fits(path, flip=False):
     """
     Load a FITS image file, converting it to a Tensor
     Parameters
@@ -82,8 +82,12 @@ def load_fits(path):
 
     hdul = fits.open(path)
     data = np.array(hdul[0].data, dtype=np.float32)
+    t = torch.tensor(data, dtype=torch.float32)
+    if flip:
+        t = torch.flipud(t)
+
     # print("data",data)
-    return torch.tensor(data, dtype=torch.float32)
+    return t
 
 
 def load_image(path):

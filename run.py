@@ -25,7 +25,7 @@ import argparse
 import sys
 import os
 from net.renderer import Splat
-from util.image import save_image, load_fits
+from util.image import save_image, load_fits, save_fits
 from util.loadsave import load_checkpoint, load_model
 from util.plyobj import load_obj, load_ply
 from util.math import PointsTen
@@ -101,10 +101,11 @@ def image_test(model, points, device, sigma, input_image, normaliser):
         x = normaliser.normalise(model.forward(im, points))
         x = torch.squeeze(x)
         im = torch.squeeze(im)
-        loss = F.l1_loss(x, im)
+        loss = F.l1_loss(x, im, reduction="sum")
         print(float(loss.item()), ",", model.get_rots())
         # print(x)
         save_image(x, name="guess.jpg")
+        save_fits(x, name="guess.fits")
 
 
 if __name__ == "__main__":
@@ -154,7 +155,7 @@ if __name__ == "__main__":
             points.from_points(load_obj(args.points))
 
     if os.path.isfile(args.image):
-        input_image = load_fits(args.image)
+        input_image = load_fits(args.image, flip=True)
         image_test(model, points, device, args.sigma, input_image, normaliser)
     else:
         print("--image must point to a valid fits file.")
