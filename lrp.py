@@ -23,11 +23,12 @@ import torch.nn as nn
 import numpy as np
 import argparse
 import math
+import os
 from net.net import num_flat_features
 from util.loadsave import load_checkpoint, load_model
 from util.plyobj import load_obj
 from util.math import PointsTen, VecRotTen, TransTen
-from util.image import save_image
+from util.image import save_image, NormaliseTorch, NormaliseNull
 from net.renderer import Splat
 import matplotlib
 
@@ -87,13 +88,17 @@ class LRP(object):
     convert everything into numpy arrays.
     """
 
-    def __init__(self, model, points, obj, device="cpu"):
+    def __init__(self, model, points, obj, normaliser, layerid=1, num_points=350, sigma=2.0, device="cpu"):
         super(LRP, self).__init__()
         self.model = model
         self.points = points
         self.obj = obj
         self.device = device
         self.batch_size = self.model._final.size()[0]
+        self.normaliser = normaliser
+        self.layerid = layerid
+        self.num_data_points = num_points
+        self.sigma = sigma
 
     def _gen_rot(self, rx, ry, rz):
         """Return a transformation with rotations in radians"""
@@ -115,9 +120,13 @@ class LRP(object):
         layers = (
             [self.model._modules["conv1"]]
             + [self.model._modules["conv2"]]
+            + [self.model._modules["conv2b"]]
             + [self.model._modules["conv3"]]
+            + [self.model._modules["conv3b"]]
             + [self.model._modules["conv4"]]
+            + [self.model._modules["conv4b"]]
             + [self.model._modules["conv5"]]
+            + [self.model._modules["conv5b"]]
             + [self.model._modules["conv6"]]
             + [toconv(self.model._modules["fc1"])]
             + [toconv(self.model._modules["fc2"])]
@@ -134,7 +143,7 @@ class LRP(object):
 
         for idx in range(L):
             # Because we have a 'view' in our net (from conv to linear) we add a reshape here
-            if idx == 6:
+            if idx == 10:
                 A[idx] = A[idx].reshape(-1, num_flat_features(A[idx]), 1, 1)
 
             A.append(layers[idx].forward(A[idx]))
@@ -144,7 +153,7 @@ class LRP(object):
         for l in range(1, L)[::-1]:
             print("Layer accumulating:", l)
             # opposite of our reshape above
-            if l == 5:
+            if l == 9:
                 # TODO base this on next layer bit
                 R[l + 1] = R[l + 1].reshape(-1, 256, 2, 2)
 
@@ -154,9 +163,7 @@ class LRP(object):
             if isinstance(layers[l], torch.nn.MaxPool2d):
                 layers[l] = torch.nn.AvgPool2d(2)
 
-            if isinstance(layers[l], torch.nn.Conv2d) or isinstance(
-                layers[l], torch.nn.AvgPool2d
-            ):
+            if isinstance(layers[l], torch.nn.Conv2d) or isinstance(layers[l], torch.nn.AvgPool2d):
 
                 # if l <= 1:      rho = lambda p: p + 0.25*p.clamp(min=0); incr = lambda z: z+1e-9
                 # if 5 <= l <= 2: rho = lambda p: p;                       incr = lambda z: z+1e-9+0.25*((z**2).mean()**.5).data
@@ -201,11 +208,8 @@ class LRP(object):
 
         # Ensure an equal spread of data around all the rotation space so
         # we don't miss any particular areas
-        num_data_points = 360
-        sigma = 2.8
-
         twopie = math.pi * 2.0
-        pp = twopie / num_data_points
+        pp = twopie / self.num_data_points
         rx = 0
         ry = 0
         rz = 0
@@ -214,7 +218,7 @@ class LRP(object):
 
         dps = []
 
-        for i in range(num_data_points):
+        for i in range(self.num_data_points):
             # tx = (random.random() - 0.5) * trans_scale
             # ty = (random.random() - 0.5) * trans_scale
             trans = TransTen(tx, ty)
@@ -231,7 +235,7 @@ class LRP(object):
         ty = 0
         rot = self._gen_rot(rx, ry, rz)
 
-        for i in range(num_data_points):
+        for i in range(self.num_data_points):
             # tx = (random.random() - 0.5) * trans_scale
             # ty = (random.random() - 0.5) * trans_scale
             trans = TransTen(
@@ -254,6 +258,9 @@ class LRP(object):
         mask = torch.tensor(mask, device=device)
 
         save_dir = "./lrp_anim"
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+
         # we need to update older models with a few parameters I think
         if not hasattr(self.model.splat, "grads"):
             self.model.splat.grads = False
@@ -261,30 +268,30 @@ class LRP(object):
         for idx, (r, t) in enumerate(dps):
             # Setup our splatting pipeline which is added to both dataloader
             # and our network as they use the same settings
-            result = splat.render(scaled_points, r, t, mask, sigma=sigma)
+            result = splat.render(scaled_points, r, t, mask, sigma=self.sigma)
             # trans_points = splat.transform_points(scaled_points, xr, yr, zr, xt, yt)
             path = save_dir + "/in_" + str(idx).zfill(3) + ".jpg"
             save_image(result.clone().cpu(), path)
             target = result.reshape(1, 128, 128)
-            target = target.repeat(self.batch_size, 1, 1, 1)
+            target = self.normaliser.normalise(target.repeat(self.batch_size, 1, 1, 1))
             R = self._perform_lrp(self.model.get_rots(), target)
             B = self.model.forward(target, self.points)
             # self._perform_lrp(self.model.get_rots(), target, scaled_points, sigma)
             # for i,l in enumerate([4,3,2,1,0]):
             #    heatmap(np.array(R[l][0]).sum(axis=0),0.5*i+1.5,0.5*i+1.5, "heatmap.png")
 
-            path = save_dir + "/heat_0_" + str(idx).zfill(3) + ".jpg"
-            heatmap(np.array(R[0][0]).sum(axis=0), 3.5, 3.5, path)
-            path = save_dir + "/heat_1_" + str(idx).zfill(3) + ".jpg"
-            heatmap(np.array(R[1][0]).sum(axis=0), 3.0, 3.0, path)
-            path = save_dir + "/heat_2_" + str(idx).zfill(3) + ".jpg"
-            heatmap(np.array(R[2][0]).sum(axis=0), 2.5, 2.5, path)
-            path = save_dir + "/heat_3_" + str(idx).zfill(3) + ".jpg"
-            heatmap(np.array(R[3][0]).sum(axis=0), 2.0, 2.0, path)
-            path = save_dir + "/heat_4_" + str(idx).zfill(3) + ".jpg"
-            heatmap(np.array(R[4][0]).sum(axis=0), 1.5, 1.5, path)
+            #path = save_dir + "/heat_0_" + str(idx).zfill(3) + ".jpg"
+            #heatmap(np.array(R[0][0]).sum(axis=0), 3.5, 3.5, path)
+            #path = save_dir + "/heat_1_" + str(idx).zfill(3) + ".jpg"
+            #heatmap(np.array(R[1][0]).sum(axis=0), 3.0, 3.0, path)
+            #path = save_dir + "/heat_2_" + str(idx).zfill(3) + ".jpg"
+            #heatmap(np.array(R[2][0]).sum(axis=0), 2.5, 2.5, path)
+            #path = save_dir + "/heat_3_" + str(idx).zfill(3) + ".jpg"
+            #heatmap(np.array(R[3][0]).sum(axis=0), 2.0, 2.0, path)
+            path = save_dir + "/heat_" + str(self.layerid) + "_" + str(idx).zfill(3) + ".jpg"
+            heatmap(np.array(R[self.layerid][0]).sum(axis=0), 1.0, 1.0, path)
             path = save_dir + "/out_" + str(idx).zfill(3) + ".jpg"
-            save_image(B.cpu()[0].reshape(128, 128), path)
+            save_image(self.normaliser.normalise(B).cpu()[0].reshape(128, 128), path)
 
             del B
             del R
@@ -302,12 +309,36 @@ if __name__ == "__main__":
         default="teapot.obj",
         help="The obj file for this network (default: teapot.obj).",
     )
+    parser.add_argument(
+        "--layerid", type=int, default=1, help="The layer to generate the heatmap for(default: 1)"
+    )
+    parser.add_argument(
+        "--sigma",
+        type=float,
+        default=2.0,
+        help="The input sigma (default: 2.0).",
+    )
+    parser.add_argument(
+        "--num-points",
+        type=int,
+        default=350,
+        help="The Number of Points (default: 350).",
+    )
 
     device = "cpu"
     args = parser.parse_args()
     savename = "checkpoint.pth.tar"
-    (model, points) = load_checkpoint(args.savedir, savename, "cpu", evaluation=True)
+
     model = load_model(args.savedir + "/model.tar", device)
+
+    (model, points, _, _, _, _, prev_args) = load_checkpoint(
+        model, args.savedir, savename, device
+    )
+
+    normaliser = NormaliseNull()
+    if prev_args.normalise_basic:
+        normaliser = NormaliseTorch()
+
     model.to(device)
-    lrp = LRP(model, points, args.obj)
+    lrp = LRP(model, points, args.obj, normaliser, args.layerid, args.num_points, args.sigma)
     lrp.run()
