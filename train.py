@@ -165,7 +165,7 @@ def test(
     model.train()
 
 
-def cont_sigma(args, current_epoch: int, sigma: float, sigma_lookup: list) -> float:
+def cont_sigma(args, current_epoch: int, batch_idx: int, batches_epoch: int, sigma_lookup: list) -> float:
     """
     If we are using _cont_sigma, we need to work out the linear
     relationship between the points. We call this each step.
@@ -176,8 +176,10 @@ def cont_sigma(args, current_epoch: int, sigma: float, sigma_lookup: list) -> fl
         The arguments object created in the __main__ function.
     current_epoch : int
         The current epoch.
-    sigma : float
-        The current sigma.
+    batch_idx : int
+        The current batch number
+    batches_epoch : int
+        The number of batches per epoch
     sigma_lookup : list
         The sigma lookup list of floats.
 
@@ -186,26 +188,15 @@ def cont_sigma(args, current_epoch: int, sigma: float, sigma_lookup: list) -> fl
     float
         The sigma to use
     """
+    progress = float(current_epoch * batches_epoch + batch_idx) / float(args.epochs * batches_epoch)
+    middle = (len(sigma_lookup) - 1) * progress
+    start = int(math.floor(middle))
+    end = int(math.ceil(middle))
+    between = middle - start
+    s_sigma = sigma_lookup[start]
+    e_sigma = sigma_lookup[end]
+    new_sigma = s_sigma + ((e_sigma - s_sigma) * between)
 
-    eps = args.epochs / (len(sigma_lookup) - 1)
-    a = 0
-    if current_epoch > 0:
-        a = int(current_epoch / eps)
-    b = a + 1
-    assert b < len(sigma_lookup)
-    assert a >= 0
-
-    ssig = sigma_lookup[a]
-    esig = sigma_lookup[b]
-
-    ssize = args.train_size
-    # TODO - we really should use the loader size here
-    if args.aug:
-        ssize = args.train_size * args.num_aug
-    steps_per_epoch = ssize / args.batch_size
-    steps = steps_per_epoch * eps
-    cont_factor = math.pow(float(esig) / float(ssig), 1.0 / float(steps))
-    new_sigma = sigma * cont_factor
     return new_sigma
 
 
@@ -289,7 +280,7 @@ def train(
 
             # If we are using continuous sigma, lets update it here
             if args.cont and not args.no_sigma:
-                sigma = cont_sigma(args, epoch, sigma, sigma_lookup)
+                sigma = cont_sigma(args, epoch, batch_idx, len(batcher), sigma_lookup)
                 # 2 places again - not ideal :/
                 data_loader.set_sigma(sigma)
                 model.set_sigma(sigma)

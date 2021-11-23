@@ -52,16 +52,30 @@ class Train(unittest.TestCase):
         args = Args()
         sigmas = []
         args.epochs = 10
+        tb = int(240000 / 32)
+
         for epoch in range(3):
-            for i in range(int(240000 / 32)):
-                sigma = cont_sigma(args, epoch, sigma, sigma_lookup)
+            for i in range(tb):
+                sigma = cont_sigma(args, epoch, i, tb, sigma_lookup)
             sigmas.append(sigma)
 
         print(sigmas)
 
-        self.assertTrue(math.fabs(sigmas[0] - 8.1857) < 0.1)
+        self.assertTrue(math.fabs(sigmas[0] - 8.2) < 0.1)
         self.assertTrue(math.fabs(sigmas[1] - 6.7) < 0.1)
-        self.assertTrue(math.fabs(sigmas[2] - 5.4851) < 0.1)
+        self.assertTrue(math.fabs(sigmas[2] - 5.4) < 0.1)
+
+        args.epochs = 20
+        sigmas = []
+        sigma = 10
+        sigma_lookup = [10, 6.0, 8.0, 7.0, 6.0, 5.0, 6.0, 8.0, 6.0, 5.0, 5.0, 4.0, 4.0, 4.0, 4.0, 3.0, 3.0, 3.0, 5.0, 3.0]
+
+        for epoch in range(args.epochs):
+            for i in range(tb):
+                sigma = cont_sigma(args, epoch, i, tb, sigma_lookup)
+            sigmas.append(sigma)
+
+        print(sigmas)
 
     def test_draw_sigma(self):
         import seaborn as sns
