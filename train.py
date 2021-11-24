@@ -419,7 +419,7 @@ def init(args, device):
             set_train, buffer_size=args.buffer_size, device=device,
                 image_size=(args.image_size, args.image_size)
         )
-        buffer_test = BufferImage(set_test, buffer_size=test_set_size, 
+        buffer_test = BufferImage(set_test, buffer_size=test_set_size,
             image_size=(args.image_size, args.image_size),  device=device)
 
     elif args.objpath != "":
