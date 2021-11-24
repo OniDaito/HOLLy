@@ -113,6 +113,7 @@ def test(
     batcher = Batcher(buffer_test, batch_size=args.batch_size)
     rots_in = []  # Save rots in for stats
     rots_out = []  # Collect all rotations out
+    test_loss = 0
 
     if args.objpath != "":
         # Assume we are simulating so we have rots to save
@@ -134,7 +135,7 @@ def test(
             )
 
             rots_out.append(model.get_rots())
-            loss = calculate_loss(target_shaped, output)
+            test_loss += calculate_loss(target_shaped, output).item()
 
             # Just save one image for now - first in the batch
             if batch_idx == image_choice:
@@ -156,11 +157,12 @@ def test(
                     S.watch(sig_out, "sigma_out_test")
 
             # soft_plus = torch.nn.Softplus()
-            S.watch(loss, "loss_test")  # loss saved for the last batch only.
             if args.objpath != "":
                 # Assume we are simulating so we have rots to save
                 rots_in.append(ddata[1])
-
+    
+    test_loss /= len(batcher)
+    S.watch(test_loss, "loss_test")  # loss saved for the last batch only.
     buffer_test.set.shuffle()
     model.train()
 
