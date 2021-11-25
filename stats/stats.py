@@ -15,8 +15,11 @@ import util.image
 import numpy as np
 import torch
 import json
-import redis
-import psycopg2
+try:
+    import redis
+    import psycopg2
+except ImportError:
+    print("No Redis or Postgresql found. No intermediate stats will be recorded.")
 import os
 from util.math import PointsTen, VecRot, VecRotTen
 
