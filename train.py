@@ -494,10 +494,10 @@ def init(args, device):
 
         points.data.requires_grad_(requires_grad=True)
 
-    # Save the training data to disk so we can interrogate it later
-    if args.save_train_data:
-        set_train.save(args.savedir + "/train_set.pickle")
-        data_loader.save(args.savedir + "/train_data.pickle")
+    # Save the training and test data to disk so we can interrogate it later
+    set_train.save(args.savedir + "/train_set.pickle")
+    set_test.save(args.savedir + "/test_set.pickle")
+    data_loader.save(args.savedir + "/train_data.pickle")
 
     variables = []
     variables.append({"params": model.parameters()})
@@ -574,12 +574,6 @@ if __name__ == "__main__":
         default=False,
         help="Save the stats of the training for later \
                           graphing.",
-    )
-    parser.add_argument(
-        "--save-train-data",
-        action="store_true",
-        default=False,
-        help="Save the data used in the training (default: False).",
     )
     parser.add_argument(
         "--predict-sigma",

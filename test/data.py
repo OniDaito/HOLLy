@@ -12,6 +12,7 @@ This file tests the data classes like loader and such.
 import unittest
 import math
 import torch
+import os
 import random
 from data.loader import Loader
 from data.imageload import ImageLoader
@@ -345,6 +346,37 @@ class Data(unittest.TestCase):
                     save_image(out.cpu().detach().numpy(),
                                "dataload_test_" + str(i) + ".jpg")
                     pm = m
+
+    def test_load_save(self):
+        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        loader = Loader(size=200, objpath="./objs/teapot_large.obj")
+        dataset = DataSet(SetType.TRAIN, 100, loader, deterministic=True)
+        dataset_test = DataSet(SetType.TEST, 100, loader, deterministic=True)
+        buffer = Buffer(dataset, splat, buffer_size=100, device="cpu")
+        batcher = Batcher(buffer)
+        target = batcher.__next__()[0]
+
+     
+        loader.save("test_loader.pickle")
+        dataset.save("test_dataset_train.pickle")
+        dataset_test.save("test_dataset_test.pickle")
+
+        loader2 = Loader(size=200, objpath="./objs/teapot_large.obj")
+        loader2.load("test_loader.pickle")
+        dataset2 = DataSet(SetType.TRAIN, 100, loader2, deterministic=True)
+        dataset2.load("test_dataset_train.pickle")
+        buffer2 = Buffer(dataset2, splat, buffer_size=100, device="cpu")
+        batcher2 = Batcher(buffer2)
+        target2 = batcher2.__next__()[0]
+
+        self.assertTrue(torch.equal(target, target2))
+
+        try:
+            os.remove("test_loader.pickle")
+            os.remove("test_dataset_train.pickle")
+            os.remove("test_dataset_test.pickle")
+        except OSError:
+            pass
 
     def test_paper(self):
         splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
