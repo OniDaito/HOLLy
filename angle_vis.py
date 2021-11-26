@@ -140,7 +140,7 @@ def angle_check(args, model, points, prev_args, device):
         loss = F.l1_loss(output, target)
         prots = model.get_rots()
         print("Loss:", loss.item())
-        rots_in_out.append((rot, VecRot(prots[0], prots[1], prots[2])))
+        rots_in_out.append((rot, VecRot(float(prots[0]), float(prots[1]), float(prots[2]))))
 
         del target
         del output
@@ -149,12 +149,12 @@ def angle_check(args, model, points, prev_args, device):
     return rots_in_out
 
 
-def load_pickled(args, device, animate=False):
+def load_pickled(args):
     results = pickle.load(open('angle_vis.pickle', 'rb'))
     basic_viz(results)
 
 
-def load(args, device, animate=False):
+def load(args, device):
     """ Begin our training routine on the selected device."""
     # Continue training or start anew
     # Declare the variables we absolutely need
