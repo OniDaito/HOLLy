@@ -87,6 +87,7 @@ def basic_viz(rot_pairs):
         data_matrix[x, y, z] += dd
         count_matrix[x, y, x] += 1
 
+    count_matrix = [1 if i < 1 else i for i in count_matrix]
     data_matrix = data_matrix / count_matrix
     rot_max = np.max(data_matrix)
 
@@ -141,10 +142,8 @@ def angle_check(args, model, points, prev_args, device):
         prots = model.get_rots().squeeze()
         print("Loss:", loss.item())
         rots_in_out.append((rot, VecRot(float(prots[0][0]), float(prots[0][1]), float(prots[0][2]))))
-
         del target
         del output
-
 
     return rots_in_out
 
