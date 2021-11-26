@@ -20,6 +20,7 @@ from random import random
 import numpy as np
 import argparse
 import math
+import pickle
 import os
 from util.math import VecRotTen, VecRot, TransTen, PointsTen
 from util.image import NormaliseTorch, NormaliseNull
@@ -29,13 +30,45 @@ SCALE = 40
 NUM_ITEMS = 400
 TITLE = "Visualising rotations."
 
+def dotty(p, q):
+    return p[0] * q[0] + p[1] * q[1] + p[2] * q[2] + p[3] * q[3]
 
-def basic_viz():
+
+def qdist(q0, q1):
+    q0_minus_q1 = [q0[0] - q1[0], q0[1] - q1[1], q0[2] - q1[2], q0[3] - q1[3]]
+    d_minus = math.sqrt(dotty(q0_minus_q1, q0_minus_q1))
+    q0_plus_q1 = [q0[0] + q1[0], q0[1] + q1[1], q0[2] + q1[2], q0[3] + q1[3]]
+    d_plus = math.sqrt(dotty(q0_plus_q1, q0_plus_q1))
+    if d_minus < d_plus:
+        return d_minus
+    return d_plus
+
+
+def qrotdiff(q0, q1):
+    d = dotty(q0, q1)
+    d = math.fabs(d) 
+    return 2.0 * math.acos(d)
+
+
+def vec_to_quat(rv):
+    angle = math.sqrt(rv.x * rv.x + rv.y * rv.y + rv.z * rv.z)
+    ax = rv.x / angle
+    ay = rv.x / angle
+    az = rv.x / angle
+
+    qx = ax * math.sin(angle/2)
+    qy = ay * math.sin(angle/2)
+    qz = az * math.sin(angle/2)
+    qw = math.cos(angle/2)
+    return (qx, qy, qz, qw)
+
+
+def basic_viz(rot_pairs):
     data_matrix = np.zeros([SCALE, SCALE, SCALE], dtype=np.uint8)
+    count_matrix = np.zeros([SCALE, SCALE, SCALE], dtype=np.uint8)
 
-    for i in range(40000):
-        rot = VecRot(0, 0, 0)
-        rot.random()
+    for pair in rot_pairs:
+        rot = pair[0]
         q = Quaternion(axis=rot.get_normalised(),
                         radians=rot.get_length())
         rot_f = VecRot(q.axis[0] * q.radians,
@@ -45,8 +78,16 @@ def basic_viz():
         x = int(rot_f.x * 5 + SCALE / 2)
         y = int(rot_f.y * 5 + SCALE / 2)
         z = int(rot_f.z * 5 + SCALE / 2)
-        data_matrix[x, y, z] += 1
 
+        # Now get the error at this spot
+        q0 = vec_to_quat(rot)
+        q1 = vec_to_quat(pair[1])
+        dd = qdist(q0, q1)
+
+        data_matrix[x, y, z] += dd
+        count_matrix[x, y, x] += 1
+
+    data_matrix = data_matrix / count_matrix
     rot_max = np.max(data_matrix)
 
     from vedo import Volume, show
@@ -81,6 +122,8 @@ def angle_check(args, model, points, prev_args, device):
     scaled_points = PointsTen(device=device).from_points(loaded_points)
     model.set_sigma(args.sigma)
 
+    rots_in_out = []
+
     for i in range(NUM_ITEMS):
         rot = VecRot(0, 0, 0)
         rot.random()
@@ -95,6 +138,16 @@ def angle_check(args, model, points, prev_args, device):
         output = model.forward(target, points)
         output = normaliser.normalise(output.reshape(prev_args.batch_size, 1, 128, 128))
         loss = F.l1_loss(output, target)
+        prots = model.get_rots()
+        print("Loss:", loss.item())
+        rots_in_out.append((rot, VecRot(prots[0], prots[1], prots[2])))
+
+    return rots_in_out
+
+
+def load_pickled(args, device, animate=False):
+    results = pickle.load(open('angle_vis.pickle', 'rb'))
+    basic_viz(results)
 
 
 def load(args, device, animate=False):
@@ -116,7 +169,9 @@ def load(args, device, animate=False):
         return
 
     model.eval()
-    angle_check(args, model, points, prev_args, device)
+    results = angle_check(args, model, points, prev_args, device)
+    pickle.dump(results, open('angle_vis.pickle', 'wb'))
+    basic_viz(results)
 
 
 if __name__ == "__main__":
@@ -138,7 +193,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--seed", type=int, default=1, metavar="S", help="random seed (default: 1)"
     )
-
+    parser.add_argument(
+        "--pickled", action="store_true", default=False, help="Load a pickle file and skip the net part (default False)"
+    )
     parser.add_argument(
         "--rots",
         metavar="R",
@@ -161,6 +218,9 @@ if __name__ == "__main__":
     torch.manual_seed(args.seed)
     device = torch.device("cuda" if use_cuda else "cpu")
     kwargs = {"num_workers": 1, "pin_memory": True} if use_cuda else {}
-    load(args, device)
+    if args.pickled:
+        load_pickled(args)
+    else:
+        load(args, device)
     print("Finished Angle Vis")
     sys.exit(0)
