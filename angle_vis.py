@@ -87,7 +87,7 @@ def basic_viz(rot_pairs):
         data_matrix[x, y, z] += dd
         count_matrix[x, y, x] += 1
 
-    count_matrix = [1 if i < 1 else i for i in count_matrix]
+    count_matrix = np.where(count_matrix < 1.0, 1)
     data_matrix = data_matrix / count_matrix
     rot_max = np.max(data_matrix)
 
