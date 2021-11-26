@@ -96,9 +96,9 @@ def basic_viz(rot_pairs):
     vol = Volume(data_matrix, c='RdBu_r', alpha=0.1, mode=1)
     vol.addScalarBar3D()
 
-    lego = vol.legosurface(vmin=1, vmax=rot_max)
-    lego.shrink()
-    lego.addScalarBar3D()
+    #lego = vol.legosurface(vmin=1, vmax=rot_max)
+    #lego.shrink()
+    #lego.addScalarBar3D()
 
     show(vol, TITLE, axes=1).close()
 
