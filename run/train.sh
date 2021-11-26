@@ -67,7 +67,7 @@ echo "# " $basedir >> $basedir/run.conf
 echo "# " $datadir >> $basedir/run.conf
 echo "# branch " $gitbranch >> $basedir/run.conf
 echo "# Execute the following commands to get the code associated with this run:" >> $basedir/run.conf
-echo "#git clone gogs@git.benjamin.computer:oni/shaper.git" >> $basedir/run.conf
+echo "#git clone gogs@git.benjamin.computer:oni/holly.git" >> $basedir/run.conf
 echo "#git reset --hard " `git rev-parse HEAD` >> $basedir/run.conf
 echo "$baseops" >> $basedir/run.conf
 
