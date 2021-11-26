@@ -141,7 +141,7 @@ def angle_check(args, model, points, prev_args, device):
         prots = model.get_rots().squeeze()
         print("Loss:", loss.item())
         print(prots.shape)
-        rots_in_out.append((rot, VecRot(float(prots[0]), float(prots[1]), float(prots[2]))))
+        rots_in_out.append((rot, VecRot(float(prots[0][0]), float(prots[0][1]), float(prots[0][2]))))
 
         del target
         del output
