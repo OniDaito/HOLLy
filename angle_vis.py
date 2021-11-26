@@ -173,7 +173,10 @@ def load(args, device, animate=False):
         return
 
     model.eval()
-    results = angle_check(args, model, points, prev_args, device)
+
+    with torch.no_grad():
+        results = angle_check(args, model, points, prev_args, device)
+
     pickle.dump(results, open('angle_vis.pickle', 'wb'))
     basic_viz(results)
 
