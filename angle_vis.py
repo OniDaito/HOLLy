@@ -27,7 +27,6 @@ from util.image import NormaliseTorch, NormaliseNull
 
 
 SCALE = 40
-NUM_ITEMS = 400
 TITLE = "Visualising rotations."
 
 def dotty(p, q):
@@ -125,7 +124,7 @@ def angle_check(args, model, points, prev_args, device):
 
     rots_in_out = []
 
-    for i in range(NUM_ITEMS):
+    for i in range(args.num_rots):
         rot = VecRot(0, 0, 0)
         rot.random()
         rot = rot.to_ten(device=device)
@@ -195,6 +194,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--sigma", default=1.25, type=float, help="The sigma value for this testing"
+    )
+    parser.add_argument(
+        "--num-rots", default=360, type=int, help="The number of rots to try (default 360)."
     )
     parser.add_argument(
         "--seed", type=int, default=1, metavar="S", help="random seed (default: 1)"
