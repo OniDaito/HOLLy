@@ -500,12 +500,12 @@ def init(args, device):
     data_loader.save(args.savedir + "/train_data.pickle")
 
     variables = []
-    variables.append({"params": model.parameters()})
+    variables.append({"params": model.parameters(), 'lr': args.lr})
 
     if not args.poseonly:
         variables.append({'params': points.data, 'lr': args.plr})
 
-    optimiser = optim.AdamW(variables, lr=args.lr)
+    optimiser = optim.AdamW(variables)
     print("Starting new model")
 
     # Now start the training proper
