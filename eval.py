@@ -184,6 +184,7 @@ def basic_eval(args, model, points, prev_args, device):
     output = model.forward(target, points)
     output = normaliser.normalise(output.reshape(prev_args.batch_size, 1, 128, 128))
     loss = F.l1_loss(output, target)
+    print("Predicting Sigma:", model.predict_sigma)
     print("Loss :", loss)
     print("Rotations returned:", model.get_rots())
     output = torch.squeeze(output.cpu()[0])
@@ -240,7 +241,6 @@ def evaluate(args, device, animate=False):
 
     with torch.no_grad():
         model.eval()
-        random.seed()
         basic_eval(args, model, points, prev_args, device)
 
         if animate:
