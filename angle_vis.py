@@ -199,6 +199,8 @@ def sigma_effect(args, model, points, prev_args, device):
     # Now see if there are any correlations?
     # Start with the distances
 
+    print("Correlations between Distance and error per sigma")
+
     for sidx in range(len(sigmas)):
         dists = []
         losses = []
@@ -213,6 +215,24 @@ def sigma_effect(args, model, points, prev_args, device):
         t = scipy.stats.kendalltau(dists, losses)[0]
         print("Correlation Pearsons", r)
         print("Correlation Tau", t)
+
+    print("Correlations between Sigma and error")
+
+    sigmas = []
+    losses = []
+
+    for sidx in range(len(sigmas)):
+       
+        for x in range(dim_size):
+            for y in range(dim_size):
+                sigmas.append(sigmas[sidx])
+                losses.append(error_cube[sidx][x][y][3])
+
+    print("Sigma", sigmas[sidx])
+    r = np.corrcoef(sigmas, losses)
+    t = scipy.stats.kendalltau(sigmas, losses)[0]
+    print("Correlation Pearsons", r)
+    print("Correlation Tau", t)
 
 
 
