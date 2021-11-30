@@ -144,7 +144,7 @@ def sigma_effect(args, model, points, prev_args, device):
 
     # TODO - maybe a pandas dataframe is ideal here?
 
-    # Start with no network - build our cube of results
+    # Build our cube of results
     # Each entry has the two angles and the error
     error_cube = []
     for s in sigmas:
@@ -159,11 +159,11 @@ def sigma_effect(args, model, points, prev_args, device):
                 if x > 0:
                     ry = xlist[0][y][1]
 
-                # Rotation 0, Rotation 1, qdist and loss
+                # Rotation 0, Rotation 1, Rotation network, qdist, loss, loss network 
                 q0 = vec_to_quat(rx)
                 q1 = vec_to_quat(ry)
                 rdist = qdist(q0, q1)
-                ylist.append([rx, ry, rdist, 0])
+                ylist.append([rx, ry, 0, rdist, 0, 0])
 
             xlist.append(ylist)
         error_cube.append(xlist)
@@ -183,16 +183,25 @@ def sigma_effect(args, model, points, prev_args, device):
                 base_image = splat.render(base_points, r0, t, mask_base, sigma=current_sigma)
                 base_image = base_image.reshape(1, 1, 128, 128)
                 base_image = normaliser.normalise(base_image)
-                base_image = base_image.squeeze()
                 
                 second_image = splat.render(base_points, r1, t, mask_base, sigma=current_sigma)
                 second_image = second_image.reshape(1, 1, 128, 128)
                 second_image = normaliser.normalise(second_image)
                 second_image = second_image.squeeze()
 
-                loss = F.l1_loss(base_image, second_image)
+                model_image = model.forward(base_image, points)
+                model_image = normaliser.normalise(model_image.reshape(prev_args.batch_size, 1, 128, 128))
+                loss_model = F.l1_loss(model_image, base_image)
+                model_image = torch.squeeze(model_image.cpu()[0])
+                model_rots = model.get_rots()
+
+                base_image = base_image.squeeze()
+
+                loss_base = F.l1_loss(base_image, second_image)
                 rdist = error_cube[sidx][xidx][yidx][2]
-                error_cube[sidx][xidx][yidx][3] = loss.item()
+                error_cube[sidx][xidx][yidx][3] = model_rots
+                error_cube[sidx][xidx][yidx][4] = loss_base.item()
+                error_cube[sidx][xidx][yidx][5] = loss_model.item()
 
                 #print("Sigma, Dist, Loss", current_sigma, rdist, loss.item())
 
@@ -208,8 +217,8 @@ def sigma_effect(args, model, points, prev_args, device):
         for x in range(dim_size):
             for y in range(dim_size):
                 if y != x:
-                    dists.append(error_cube[sidx][x][y][2])
-                    losses.append(error_cube[sidx][x][y][3])
+                    dists.append(error_cube[sidx][x][y][3])
+                    losses.append(error_cube[sidx][x][y][4])
 
         print("Sigma", sigmas[sidx])
         r = np.corrcoef(dists, losses)
@@ -227,7 +236,7 @@ def sigma_effect(args, model, points, prev_args, device):
             for y in range(dim_size):
                 if y != x:
                     fsigs.append(sigmas[sidx])
-                    losses.append(error_cube[sidx][x][y][3])
+                    losses.append(error_cube[sidx][x][y][4])
 
     r = np.corrcoef(fsigs, losses)
     t = scipy.stats.kendalltau(fsigs, losses)[0]
@@ -244,7 +253,7 @@ def sigma_effect(args, model, points, prev_args, device):
         for x in range(dim_size):
             for y in range(dim_size):
                 if y != x:
-                    losses.append(error_cube[sidx][x][y][3])
+                    losses.append(error_cube[sidx][x][y][4])
 
         variances.append(np.var(losses))
 
