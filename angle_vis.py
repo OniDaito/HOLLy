@@ -190,7 +190,7 @@ def sigma_effect(args, model, points, prev_args, device):
                 second_image = second_image.squeeze()
 
                 model_image = model.forward(base_image, points)
-                model_image = normaliser.normalise(model_image.reshape(prev_args.batch_size, 1, 128, 128))
+                model_image = normaliser.normalise(model_image.reshape(1, 1, 128, 128))
                 loss_model = F.l1_loss(model_image, base_image)
                 model_image = torch.squeeze(model_image.cpu()[0])
                 model_rots = model.get_rots()
