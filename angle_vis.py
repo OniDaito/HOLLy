@@ -226,7 +226,7 @@ def sigma_effect(args, model, points, prev_args, device):
         for x in range(dim_size):
             for y in range(dim_size):
                 if y != x:
-                    sigmas.append(fsigs[sidx])
+                    fsigs.append(sigmas[sidx])
                     losses.append(error_cube[sidx][x][y][3])
 
 
