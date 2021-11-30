@@ -242,16 +242,16 @@ def sigma_effect(args, model, points, prev_args, device):
                     losses_model.append(error_cube[sidx][x][y][5])
 
     r = np.corrcoef(fsigs, losses)
-    t = scipy.stats.kendalltau(fsigs, losses)[0]
-    print("Correlation Pearsons Base", r)
+    t = scipy.stats.kendalltau(fsigs, losses)
+    #print("Correlation Pearsons Base", r)
     print("Correlation Tau Base", t)
 
     r = np.corrcoef(fsigs, losses_model)
-    t = scipy.stats.kendalltau(fsigs, losses_model)[0]
-    print("Correlation Pearsons Model", r)
+    t = scipy.stats.kendalltau(fsigs, losses_model)
+    #print("Correlation Pearsons Model", r)
     print("Correlation Tau Model", t)
 
-    print("Correlation between Sigma and mean/standard dev")
+    print("Correlation between Sigma and Variance on the loss")
     fsigs = []
     variances = []
     variances_model = []
@@ -271,14 +271,14 @@ def sigma_effect(args, model, points, prev_args, device):
         variances_model.append(np.var(losses_model))
 
     r = np.corrcoef(fsigs, variances)
-    t = scipy.stats.kendalltau(fsigs, variances)[0]
-    print("Correlation Pearson Base", r)
+    t = scipy.stats.kendalltau(fsigs, variances)
+    #print("Correlation Pearson Base", r)
     print("Correlation Tau Base", t)
     print("Variances Base:", variances)
 
     r = np.corrcoef(fsigs, variances_model)
-    t = scipy.stats.kendalltau(fsigs, variances)[0]
-    print("Correlation Pearsons Model", r)
+    t = scipy.stats.kendalltau(fsigs, variances)
+    #print("Correlation Pearsons Model", r)
     print("Correlation Tau Model", t)
     print("Variances Model:", variances_model)
 
