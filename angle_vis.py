@@ -22,6 +22,8 @@ import argparse
 import math
 import pickle
 import os
+from tqdm import tqdm
+import scipy
 from util.math import VecRotTen, VecRot, TransTen, PointsTen, qdist, vec_to_quat, angles_to_axis
 from util.image import NormaliseTorch, NormaliseNull
 
@@ -140,6 +142,8 @@ def sigma_effect(args, model, points, prev_args, device):
     yt = torch.tensor([0.0], dtype=torch.float32)
     t = TransTen(xt, yt)
 
+    # TODO - maybe a pandas dataframe is ideal here?
+
     # Start with no network - build our cube of results
     # Each entry has the two angles and the error
     error_cube = []
@@ -166,7 +170,7 @@ def sigma_effect(args, model, points, prev_args, device):
 
     splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
 
-    for sidx in range(len(sigmas)):
+    for sidx in tqdm(range(len(sigmas))):
         current_sigma = sigmas[sidx]
 
         xlist = error_cube[sidx]
@@ -190,7 +194,25 @@ def sigma_effect(args, model, points, prev_args, device):
                 rdist = error_cube[sidx][xidx][yidx][2]
                 error_cube[sidx][xidx][yidx][3] = loss.item()
 
-                print("Sigma, Dist, Loss", current_sigma, rdist, loss.item())
+                #print("Sigma, Dist, Loss", current_sigma, rdist, loss.item())
+
+    # Now see if there are any correlations?
+    # Start with the distances
+
+    for sidx in range(len(sigmas)):
+        dists = []
+        losses = []
+
+        for x in range(dim_size):
+            for y in range(dim_size):
+                dists.append(error_cube[sidx][x][y][2])
+                losses.append(error_cube[sidx][x][y][3])
+
+        print("Sigma", sigmas[sidx])
+        r = np.corrcoef(dists, losses)
+        t = scipy.stats.kendalltau(dists, losses)[0]
+        print("Correlation Pearsons", r)
+        print("Correlation Tau", t)
 
 
 
