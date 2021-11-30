@@ -153,7 +153,7 @@ def sigma_effect(args, model, points, prev_args, device):
             for y in range(dim_size):
                 ry = VecRot(0, 0, 0).random().to_ten(device=device)
                 if x > 0:
-                    ry = xlist[0][y]
+                    ry = xlist[0][y][1]
 
                 ylist.append([rx, ry, 0])
 
@@ -187,7 +187,7 @@ def sigma_effect(args, model, points, prev_args, device):
                 q1 = vec_to_quat(r1)
                 rdist = qdist(q0, q1)
 
-                print("Sigma, R0, R1, Dist, Loss", current_sigma, r0, r1, rdist, loss)
+                print("Sigma, R0, R1, Dist, Loss", current_sigma, r0, r1, rdist, loss.item())
 
 
 
