@@ -117,10 +117,10 @@ def angle_eval(args, model, points, prev_args, device):
 
             if not model.predict_sigma:
                 model.set_sigma(args.sigma)
+
             output = model.forward(target, points)
             output = normaliser.normalise(output.reshape(prev_args.batch_size, 1, 128, 128))
             loss = F.l1_loss(output, target)
-
             output = torch.squeeze(output.cpu()[0])
             save_image(output, args.savedir + "/" + "eval_out_" + str(idx).zfill(4) + ".jpg")
             rots = model.get_rots()
@@ -142,6 +142,7 @@ def basic_eval(args, model, points, prev_args, device):
         xr = float(math.radians(args.rots[0]))
         yr = float(math.radians(args.rots[1]))
         zr = float(math.radians(args.rots[2]))
+
     if args.trans:
         xt = float(args.trans[0])
         yt = float(args.trans[1])

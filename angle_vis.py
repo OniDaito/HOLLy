@@ -111,11 +111,14 @@ def sigma_effect(args, model, points, prev_args, device):
     None
     """
 
+    dim_size = 20
+    sigmas = [10,9.0,8.1,7.29,6.56,5.9,5.31,4.78,4.3,3.87,3.65,3.28,2.95,2.66,2.39,2.15,1.94,1.743,1.57,1.41]
     # Which normalisation are we using?
     normaliser = NormaliseNull()
 
     if prev_args.normalise_basic:
         normaliser = NormaliseTorch()
+
 
     mask = []
     for _ in range(len(points)):
@@ -133,27 +136,55 @@ def sigma_effect(args, model, points, prev_args, device):
     yt = torch.tensor([0.0], dtype=torch.float32)
     t = TransTen(xt, yt)
 
-    r = VecRot(0, 0, 0).to_ten(device=device)
+    # Start with no network - build our cube of results
+    # Each entry has the two angles and the error
+    error_cube = []
+    for s in sigmas:
+        xlist = []
+
+        for x in range(dim_size):
+            ylist = []
+            rx = VecRot(0, 0, 0).random().to_ten(device=device)
+
+            for y in range(dim_size):
+                ry = VecRot(0, 0, 0).random().to_ten(device=device)
+                if x > 0:
+                    ry = xlist[0][y]
+
+                ylist.append([rx, ry, 0])
+
+            xlist.append(ylist)
+        error_cube.append(xlist)
 
     splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
 
-    base_image = splat.render(base_points, r, t, mask_base, sigma=args.sigma)
-    base_image = model.reshape(1, 1, 128, 128)
-    base_image = normaliser.normalise(model)
-    base_image = model.squeeze()
+    for sidx in range(len(sigmas)):
+        current_sigma = sigmas[sidx]
 
-    #save_image(model, name="renderer.jpg")
-    #save_fits(model, name="renderer.fits")
-    rx = math.radians(1)
-    ry = math.radians(1)
-    rz = math.radians(1)
-    r = angles_to_axis(rx, ry, rz).to_ten(device=device)
+        xlist = error_cube[sidx]
 
-    r = VecRot(0, 0, 0).to_ten(device=device)
-    base_image = splat.render(base_points, r, t, mask_base, sigma=args.sigma)
-    base_image = model.reshape(1, 1, 128, 128)
-    base_image = normaliser.normalise(model)
-    base_image = model.squeeze()
+        for xidx in range(dim_size):
+            for yidx in range(dim_size):
+                r0 = error_cube[sidx][xidx][yidx][0]
+                r1 = error_cube[sidx][xidx][yidx][1]
+
+                base_image = splat.render(base_points, r0, t, mask_base, sigma=current_sigma)
+                base_image = base_image.reshape(1, 1, 128, 128)
+                base_image = normaliser.normalise(base_image)
+                base_image = base_image.squeeze()
+                
+                second_image = splat.render(base_points, r1, t, mask_base, sigma=current_sigma)
+                second_image = second_image.reshape(1, 1, 128, 128)
+                second_image = normaliser.normalise(second_image)
+                second_image = second_image.squeeze()
+
+                loss = F.l1_loss(base_image, second_image)
+                q0 = vec_to_quat(r0)
+                q1 = vec_to_quat(r1)
+                rdist = qdist(q0, q1)
+
+                print("Sigma, R0, R1, Dist, Loss", current_sigma, r0, r1, rdist, loss)
+
 
 
 def angle_check(args, model, points, prev_args, device):
@@ -215,7 +246,6 @@ def angle_check(args, model, points, prev_args, device):
         target = target.repeat(prev_args.batch_size, 1, 1, 1)
         target = target.to(device)
         target = normaliser.normalise(target)
-
         output = model.forward(target, points)
         output = normaliser.normalise(output.reshape(prev_args.batch_size, 1, 128, 128))
         loss = F.l1_loss(output, target)
@@ -226,12 +256,6 @@ def angle_check(args, model, points, prev_args, device):
         del output
 
     return rots_in_out
-
-
-def load_pickled(args):
-    results = pickle.load(open('angle_vis.pickle', 'rb'))
-    basic_viz(results)
-
 
 def load(args, device):
     """ Begin our training routine on the selected device."""
@@ -253,11 +277,11 @@ def load(args, device):
 
     model.eval()
 
-    with torch.no_grad():
-        results = angle_check(args, model, points, prev_args, device)
+    #with torch.no_grad():
+    #    results = angle_check(args, model, points, prev_args, device)
 
-    pickle.dump(results, open('angle_vis.pickle', 'wb'))
-    basic_viz(results)
+    sigma_effect(args, model, points, prev_args, device)
+    #basic_viz(results)
 
 
 if __name__ == "__main__":
@@ -282,9 +306,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--seed", type=int, default=1, metavar="S", help="random seed (default: 1)"
     )
-    parser.add_argument(
-        "--pickled", action="store_true", default=False, help="Load a pickle file and skip the net part (default False)"
-    )
+  
     parser.add_argument(
         "--rots",
         metavar="R",
@@ -307,9 +329,6 @@ if __name__ == "__main__":
     torch.manual_seed(args.seed)
     device = torch.device("cuda" if use_cuda else "cpu")
     kwargs = {"num_workers": 1, "pin_memory": True} if use_cuda else {}
-    if args.pickled:
-        load_pickled(args)
-    else:
-        load(args, device)
+    load(args, device)
     print("Finished Angle Vis")
     sys.exit(0)
