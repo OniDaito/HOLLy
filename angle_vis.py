@@ -373,10 +373,10 @@ def load(args, device):
 
     model.eval()
 
-    #with torch.no_grad():
-    #    results = angle_check(args, model, points, prev_args, device)
+    with torch.no_grad():
+        # results = angle_check(args, model, points, prev_args, device)
+        sigma_effect(args, model, points, prev_args, device)
 
-    sigma_effect(args, model, points, prev_args, device)
     #basic_viz(results)
 
 
