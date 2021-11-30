@@ -229,6 +229,8 @@ def sigma_effect(args, model, points, prev_args, device):
                     sigmas.append(sigmas[sidx])
                     losses.append(error_cube[sidx][x][y][3])
 
+    print(sigmas)
+    print(losses)
     r = np.corrcoef(sigmas, losses)
     t = scipy.stats.kendalltau(sigmas, losses)[0]
     print("Correlation Pearsons", r)
