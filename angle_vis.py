@@ -208,7 +208,8 @@ def sigma_effect(args, model, points, prev_args, device):
     # Now see if there are any correlations?
     # Start with the distances
 
-    print("Correlations between Distance and error per sigma")
+    # Commented out as there is none really
+    '''print("Correlations between Distance and error per sigma")
 
     for sidx in range(len(sigmas)):
         dists = []
@@ -224,12 +225,13 @@ def sigma_effect(args, model, points, prev_args, device):
         r = np.corrcoef(dists, losses)
         t = scipy.stats.kendalltau(dists, losses)[0]
         print("Correlation Pearsons", r)
-        print("Correlation Tau", t)
+        print("Correlation Tau", t)'''
 
     print("Correlations between Sigma and error")
 
     fsigs = []
     losses = []
+    losses_model = []
 
     for sidx in range(len(sigmas)):
         for x in range(dim_size):
@@ -237,31 +239,48 @@ def sigma_effect(args, model, points, prev_args, device):
                 if y != x:
                     fsigs.append(sigmas[sidx])
                     losses.append(error_cube[sidx][x][y][4])
+                    losses_model.append(error_cube[sidx][x][y][5])
 
     r = np.corrcoef(fsigs, losses)
     t = scipy.stats.kendalltau(fsigs, losses)[0]
-    print("Correlation Pearsons", r)
-    print("Correlation Tau", t)
+    print("Correlation Pearsons Base", r)
+    print("Correlation Tau Base", t)
+
+    r = np.corrcoef(fsigs, losses_model)
+    t = scipy.stats.kendalltau(fsigs, losses_model)[0]
+    print("Correlation Pearsons Model", r)
+    print("Correlation Tau Model", t)
 
     print("Correlation between Sigma and mean/standard dev")
     fsigs = []
     variances = []
+    variances_model = []
 
     for sidx in range(len(sigmas)):
         fsigs.append(sigmas[sidx])
         losses = []
+        losses_model = []
+
         for x in range(dim_size):
             for y in range(dim_size):
                 if y != x:
                     losses.append(error_cube[sidx][x][y][4])
+                    losses_model.append(error_cube[sidx][x][y][5])
 
         variances.append(np.var(losses))
+        variances_model.append(np.var(losses_model))
 
     r = np.corrcoef(fsigs, variances)
     t = scipy.stats.kendalltau(fsigs, variances)[0]
-    print("Correlation Pearsons", r)
-    print("Correlation Tau", t)
-    print("Variances:", variances)
+    print("Correlation Pearson Base", r)
+    print("Correlation Tau Base", t)
+    print("Variances Base:", variances)
+
+    r = np.corrcoef(fsigs, variances_model)
+    t = scipy.stats.kendalltau(fsigs, variances)[0]
+    print("Correlation Pearsons Model", r)
+    print("Correlation Tau Model", t)
+    print("Variances Model:", variances_model)
 
 
 def angle_check(args, model, points, prev_args, device):
