@@ -19,7 +19,7 @@ Fill up and render           [ids reserved]       Hold data for rendering
 """
 
 import torch
-from astropy.io import fits
+import pyfits
 from tqdm import tqdm
 from data.sets import DataSet
 from data.loader import ItemType
@@ -259,16 +259,15 @@ class BufferImage(BaseBuffer):
                 # Here is where we render and place into the buffer
                 datum = self.set.__next__()
                 assert datum.type == ItemType.FITSIMAGE
-                with fits.open(datum.path) as w:
-                    hdul = w[0].data.byteswap().newbyteorder()
-                    timg = torch.tensor(hdul, dtype=torch.float32, device=self.device)
+                data_cube, header_data_cube = pyfits.getdata(datum.path, 0, header=True)
+                timg = torch.tensor(data_cube, dtype=torch.float32, device=self.device)
 
-                    assert (
-                        timg.shape[0] == self.image_dim[0]
-                        and timg.shape[1] == self.image_dim[1]
-                    )
-                    # Append as a tuple to match buffers
-                    self.buffer.append((timg,))
+                assert (
+                    timg.shape[0] == self.image_dim[0]
+                    and timg.shape[1] == self.image_dim[1]
+                )
+                # Append as a tuple to match buffers
+                self.buffer.append((timg,))
 
         except Exception as e:
             raise e

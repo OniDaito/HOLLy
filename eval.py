@@ -28,7 +28,7 @@ from util.image import save_image
 from util.plyobj import load_obj, save_obj, save_ply
 from util.loadsave import load_checkpoint, load_model
 from util.image import NormaliseTorch, NormaliseNull
-from util.math import VecRotTen, VecRot, TransTen, PointsTen
+from util.math import VecRotTen, VecRot, TransTen, PointsTen, vec_to_quat, qdist
 
 
 def angle_eval(args, model, points, prev_args, device):
@@ -36,7 +36,7 @@ def angle_eval(args, model, points, prev_args, device):
     network is failing."""
     xt = 0.0
     yt = 0.0
-    num_angles = 36
+    num_angles = 100
     lerps = 10
 
     # pp = 1.0 / num_angles ** (1. / 3)
@@ -48,6 +48,25 @@ def angle_eval(args, model, points, prev_args, device):
     for i in range(num_angles):
         rand_rots.append(VecRot(0, 0, 0).random())
 
+    # Order the randrots based on quaternion distance
+    ordered_idx = [0]
+    while len(ordered_idx) < num_angles:
+        cidx = ordered_idx[-1]
+        min_d = 2
+        min_idx = 0
+        q0 = vec_to_quat(rand_rots[cidx])
+
+        for i in range(num_angles):
+            if i not in ordered_idx:
+                q1 = vec_to_quat(rand_rots[i])
+                dd = qdist(q0, q1)
+                if dd < min_d:
+                    min_idx = i
+                    min_d = dd
+
+        ordered_idx.append(min_idx)
+
+    # Set up the normaliser
     normaliser = NormaliseNull()
     if prev_args.normalise_basic:
         normaliser = NormaliseTorch()
@@ -61,8 +80,8 @@ def angle_eval(args, model, points, prev_args, device):
     scaled_points = PointsTen(device=device).from_points(loaded_points)
 
     for i in tqdm(range(num_angles-1)):
-        rot_s = rand_rots[i]
-        rot_n = rand_rots[i+1]
+        rot_s = rand_rots[ordered_idx[i]]
+        rot_n = rand_rots[ordered_idx[i+1]]
         qrot_s = Quaternion(axis=rot_s.get_normalised(), radians=rot_s.get_angle())
         qrot_n = Quaternion(axis=rot_n.get_normalised(), radians=rot_n.get_angle())
 

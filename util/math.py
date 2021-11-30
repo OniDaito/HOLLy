@@ -18,6 +18,39 @@ from pyquaternion import Quaternion
 
 
 
+def dotty(p, q):
+    return p[0] * q[0] + p[1] * q[1] + p[2] * q[2] + p[3] * q[3]
+
+
+def qdist(q0, q1):
+    q0_minus_q1 = [q0[0] - q1[0], q0[1] - q1[1], q0[2] - q1[2], q0[3] - q1[3]]
+    d_minus = math.sqrt(dotty(q0_minus_q1, q0_minus_q1))
+    q0_plus_q1 = [q0[0] + q1[0], q0[1] + q1[1], q0[2] + q1[2], q0[3] + q1[3]]
+    d_plus = math.sqrt(dotty(q0_plus_q1, q0_plus_q1))
+    if d_minus < d_plus:
+        return d_minus
+    return d_plus
+
+
+def qrotdiff(q0, q1):
+    d = dotty(q0, q1)
+    d = math.fabs(d) 
+    return 2.0 * math.acos(d)
+
+
+def vec_to_quat(rv):
+    angle = math.sqrt(rv.x * rv.x + rv.y * rv.y + rv.z * rv.z)
+    ax = rv.x / angle
+    ay = rv.x / angle
+    az = rv.x / angle
+
+    qx = ax * math.sin(angle/2)
+    qy = ay * math.sin(angle/2)
+    qz = az * math.sin(angle/2)
+    qw = math.cos(angle/2)
+    return (qx, qy, qz, qw)
+
+
 class Point:
     """ A point for rendering."""
 
