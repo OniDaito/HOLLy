@@ -113,7 +113,7 @@ def sigma_effect(args, model, points, prev_args, device):
     None
     """
 
-    dim_size = 20 # how many angles to compare to each other
+    dim_size = args.dim_size # how many angles to compare to each other
     sigmas = [10,9.0,8.1,7.29,6.56,5.9,5.31,4.78,4.3,3.87,3.65,3.28,2.95,2.66,2.39,2.15,1.94,1.743,1.57,1.41]
     # Which normalisation are we using?
     normaliser = NormaliseNull()
@@ -353,6 +353,9 @@ if __name__ == "__main__":
         "--num-rots", default=360, type=int, help="The number of rots to try (default 360)."
     )
     parser.add_argument(
+        "--dim-size", default=20, type=int, help="How many angles in loss check (default 20)."
+    )
+    parser.add_argument(
         "--seed", type=int, default=1, metavar="S", help="random seed (default: 1)"
     )
   
@@ -380,4 +383,3 @@ if __name__ == "__main__":
     kwargs = {"num_workers": 1, "pin_memory": True} if use_cuda else {}
     load(args, device)
     print("Finished Angle Vis")
-    sys.exit(0)
