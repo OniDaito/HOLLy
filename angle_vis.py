@@ -277,7 +277,7 @@ def sigma_effect(args, model, points, prev_args, device):
     print("Variances Base:", variances)
 
     r = np.corrcoef(fsigs, variances_model)
-    t = scipy.stats.kendalltau(fsigs, variances)
+    t = scipy.stats.kendalltau(fsigs, variances_model)
     #print("Correlation Pearsons Model", r)
     print("Correlation Tau Model", t)
     print("Variances Model:", variances_model)
