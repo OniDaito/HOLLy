@@ -23,7 +23,7 @@ import math
 import pickle
 import os
 from tqdm import tqdm
-import scipy
+import scipy.stats
 from util.math import VecRotTen, VecRot, TransTen, PointsTen, qdist, vec_to_quat, angles_to_axis
 from util.image import NormaliseTorch, NormaliseNull
 
