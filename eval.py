@@ -115,7 +115,8 @@ def angle_eval(args, model, points, prev_args, device):
             target = target.to(device)
             target = normaliser.normalise(target)
 
-            model.set_sigma(args.sigma)
+            if not model.predict_sigma:
+                model.set_sigma(args.sigma)
             output = model.forward(target, points)
             output = normaliser.normalise(output.reshape(prev_args.batch_size, 1, 128, 128))
             loss = F.l1_loss(output, target)
@@ -190,7 +191,7 @@ def basic_eval(args, model, points, prev_args, device):
     output = torch.squeeze(output.cpu()[0])
     save_image(output, args.savedir + "/" + "eval_single_out.jpg")
     rots = model.get_rots()
-    print("Rots / Trans detected: ", rots[0])
+    print("Rots / Trans / Sigma detected: ", rots[0])
 
     # Now save the input points
     vertices = []
