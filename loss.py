@@ -49,7 +49,7 @@ if __name__ == "__main__":
     if os.path.isfile(args.i) and os.path.isfile(args.j):
         i_image = load_fits(args.i, flip=True)
         j_image = load_fits(args.j, flip=True)
-        loss = F.l1_loss(i_image, j_image, reduction="sum")
+        loss = F.l1_loss(i_image, j_image, reduction="mean")
         print(float(loss.item()))
 
     else:

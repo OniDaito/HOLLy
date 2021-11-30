@@ -22,14 +22,28 @@ import argparse
 import math
 import pickle
 import os
-from util.math import VecRotTen, VecRot, TransTen, PointsTen, qdist, vec_to_quat
+from util.math import VecRotTen, VecRot, TransTen, PointsTen, qdist, vec_to_quat, angles_to_axis
 from util.image import NormaliseTorch, NormaliseNull
 
 
 SCALE = 40
 TITLE = "Visualising rotations."
 
+
 def basic_viz(rot_pairs):
+    """
+    Given input and output rotations plot in a way
+    that is easy to visualise.
+
+    Parameters
+    ----------
+    rot_pairs : List of Tuple of VecRot
+        List of input/output rotation pairs
+
+    Returns
+    -------
+    self
+    """
     data_matrix = np.zeros([SCALE, SCALE, SCALE], dtype=np.uint8)
     count_matrix = np.zeros([SCALE, SCALE, SCALE], dtype=np.uint8)
 
@@ -69,16 +83,116 @@ def basic_viz(rot_pairs):
     show(vol, TITLE, axes=1).close()
 
 
+def sigma_effect(args, model, points, prev_args, device):
+    """
+    What effect does sigma have on the loss, particularly
+    with different rotations.
+    Do rotations that differ a lot give a bigger error or no?
+
+    Parameters
+    ----------
+    args : namespace
+        The program command line arguments    
+    
+    model : Net
+        Our neural network model
+    
+    points: Points
+        The points the model came up with
+
+    prev_args : dictionary
+        The arguments used by the network when it was run.
+    
+    device : 
+        The torch device we are running on.
+
+    Returns
+    -------
+    None
+    """
+
+    # Which normalisation are we using?
+    normaliser = NormaliseNull()
+
+    if prev_args.normalise_basic:
+        normaliser = NormaliseTorch()
+
+    mask = []
+    for _ in range(len(points)):
+        mask.append(1.0)
+    
+    mask = torch.tensor(mask, device=device)
+
+    base_points = PointsTen(device=device)
+    base_points.from_points(load_obj(args.obj))
+    mask_base = []
+    for _ in range(len(base_points)):
+        mask_base.append(1.0)
+
+    xt = torch.tensor([0.0], dtype=torch.float32)
+    yt = torch.tensor([0.0], dtype=torch.float32)
+    t = TransTen(xt, yt)
+
+    r = VecRot(0, 0, 0).to_ten(device=device)
+
+    splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+
+    base_image = splat.render(base_points, r, t, mask_base, sigma=args.sigma)
+    base_image = model.reshape(1, 1, 128, 128)
+    base_image = normaliser.normalise(model)
+    base_image = model.squeeze()
+
+    #save_image(model, name="renderer.jpg")
+    #save_fits(model, name="renderer.fits")
+    rx = math.radians(1)
+    ry = math.radians(1)
+    rz = math.radians(1)
+    r = angles_to_axis(rx, ry, rz).to_ten(device=device)
+
+    r = VecRot(0, 0, 0).to_ten(device=device)
+    base_image = splat.render(base_points, r, t, mask_base, sigma=args.sigma)
+    base_image = model.reshape(1, 1, 128, 128)
+    base_image = normaliser.normalise(model)
+    base_image = model.squeeze()
+
+
 def angle_check(args, model, points, prev_args, device):
+    """
+    Given our model and some input angles, run through the 
+    network and see what corresponding angles we get.
+
+    Parameters
+    ----------
+    args : namespace
+        The program command line arguments    
+    
+    model : Net
+        Our neural network model
+    
+    points: Points
+        The points the model came up with
+
+    prev_args : dictionary
+        The arguments used by the network when it was run.
+    
+    device : 
+        The torch device we are running on.
+
+    Returns
+    -------
+    List
+        a List of tuples of VecRot pairs
+    """
+
     xt = 0.0
     yt = 0.0
     xt = torch.tensor([xt], dtype=torch.float32, device=device)
     yt = torch.tensor([yt], dtype=torch.float32, device=device)
     trans = TransTen(xt, yt)
 
-    #normaliser = NormaliseNull()
-    #if prev_args.normalise_basic:
-    normaliser = NormaliseTorch()
+    normaliser = NormaliseNull()
+    if prev_args.normalise_basic:
+        normaliser = NormaliseTorch()
 
     # Load some base points from an obj
     loaded_points = load_obj(objpath=args.obj)

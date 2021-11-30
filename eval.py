@@ -36,8 +36,8 @@ def angle_eval(args, model, points, prev_args, device):
     network is failing."""
     xt = 0.0
     yt = 0.0
-    num_angles = 100
-    lerps = 10
+    num_angles = args.num_angles
+    lerps = args.lerps
 
     # pp = 1.0 / num_angles ** (1. / 3)
     xt = torch.tensor([xt], dtype=torch.float32, device=device)
@@ -69,6 +69,7 @@ def angle_eval(args, model, points, prev_args, device):
     # Set up the normaliser
     normaliser = NormaliseNull()
     if prev_args.normalise_basic:
+        print("Using basic normaliser.")
         normaliser = NormaliseTorch()
 
     # Load some base points from an obj
@@ -100,32 +101,32 @@ def angle_eval(args, model, points, prev_args, device):
             t = TransTen(xt, yt)
 
             # Stats turn on
-            S.write_immediate((fx, fy, fz), "eval_rot_in", 0, 0, idx)
+            if args.stats:
+                S.write_immediate((fx, fy, fz), "eval_rot_in", 0, 0, idx)
 
             # Setup our splatting pipeline which is added to both dataloader
             # and our network as they use thTraine same settings
             splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
             result = splat.render(scaled_points, r, t, mask, sigma=args.sigma)
-            save_image(result, args.savedir + "/" + "eval_in_" + str(idx).zfill(3) + ".jpg")
+            save_image(result, args.savedir + "/" + "eval_in_" + str(idx).zfill(4) + ".jpg")
 
             target = result.reshape(1, 128, 128)
             target = target.repeat(prev_args.batch_size, 1, 1, 1)
             target = target.to(device)
             target = normaliser.normalise(target)
 
-            # We use tpoints because otherwise we can't update points
-            # and keep working out the gradient cos pytorch weirdness
             model.set_sigma(args.sigma)
             output = model.forward(target, points)
             output = normaliser.normalise(output.reshape(prev_args.batch_size, 1, 128, 128))
             loss = F.l1_loss(output, target)
 
             output = torch.squeeze(output.cpu()[0])
-            save_image(output, args.savedir + "/" + "eval_out_" + str(idx).zfill(3) + ".jpg")
+            save_image(output, args.savedir + "/" + "eval_out_" + str(idx).zfill(4) + ".jpg")
             rots = model.get_rots()
 
-            S.write_immediate(rots[0], "eval_rot_out", 0, 0, idx)
-            S.write_immediate(loss, "eval_loss", 0, 0,  idx)
+            if args.stats:
+                S.write_immediate(rots[0], "eval_rot_out", 0, 0, idx)
+                S.write_immediate(loss, "eval_loss", 0, 0,  idx)
 
 
 def basic_eval(args, model, points, prev_args, device):
@@ -221,7 +222,8 @@ def evaluate(args, device, animate=False):
     """ Begin our training routine on the selected device."""
     # Continue training or start anew
     # Declare the variables we absolutely need
-    S.on(args.savedir)
+    if args.stats:
+        S.on(args.savedir)
     model = None
     points = None
     model = load_model(args.savedir + "/model.tar", device)
@@ -236,13 +238,16 @@ def evaluate(args, device, animate=False):
         print("Error - need to pass in a model")
         return
 
-    model.eval()
-    random.seed()
-    basic_eval(args, model, points, prev_args, device)
+    with torch.no_grad():
+        model.eval()
+        random.seed()
+        basic_eval(args, model, points, prev_args, device)
 
-    if animate:
-        angle_eval(args, model, points, prev_args, device)
-    S.close()
+        if animate:
+            angle_eval(args, model, points, prev_args, device)
+
+    if args.stats:
+        S.close()
 
 
 if __name__ == "__main__":
@@ -253,6 +258,15 @@ if __name__ == "__main__":
         "--no-cuda", action="store_true", default=False, help="disables CUDA training"
     )
     parser.add_argument(
+        "--stats", action="store_true", default=False, help="Store eval statistics in a DB (default: False)"
+    )
+    parser.add_argument(
+        "--lerps", type=int, default=10, metavar="S", help="Number of SLERP steps between angles(default: 10)"
+    )
+     parser.add_argument(
+        "--num-angles", type=int, default=100, metavar="S", help="Number of angles to test (default: 100)"
+    )
+     parser.add_argument(
         "--seed", type=int, default=1, metavar="S", help="random seed (default: 1)"
     )
     parser.add_argument(
