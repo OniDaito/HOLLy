@@ -198,8 +198,8 @@ def sigma_effect(args, model, points, prev_args, device):
                 base_image = base_image.squeeze()
 
                 loss_base = F.l1_loss(base_image, second_image)
-                rdist = error_cube[sidx][xidx][yidx][2]
-                error_cube[sidx][xidx][yidx][3] = model_rots
+                rdist = error_cube[sidx][xidx][yidx][3]
+                error_cube[sidx][xidx][yidx][2] = model_rots
                 error_cube[sidx][xidx][yidx][4] = loss_base.item()
                 error_cube[sidx][xidx][yidx][5] = loss_model.item()
 
