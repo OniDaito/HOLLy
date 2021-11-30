@@ -111,7 +111,7 @@ def sigma_effect(args, model, points, prev_args, device):
     None
     """
 
-    dim_size = 20
+    dim_size = 20 # how many angles to compare to each other
     sigmas = [10,9.0,8.1,7.29,6.56,5.9,5.31,4.78,4.3,3.87,3.65,3.28,2.95,2.66,2.39,2.15,1.94,1.743,1.57,1.41]
     # Which normalisation are we using?
     normaliser = NormaliseNull()
@@ -155,7 +155,11 @@ def sigma_effect(args, model, points, prev_args, device):
                 if x > 0:
                     ry = xlist[0][y][1]
 
-                ylist.append([rx, ry, 0])
+                # Rotation 0, Rotation 1, qdist and loss
+                q0 = vec_to_quat(rx)
+                q1 = vec_to_quat(ry)
+                rdist = qdist(q0, q1)
+                ylist.append([rx, ry, rdist, 0])
 
             xlist.append(ylist)
         error_cube.append(xlist)
@@ -183,11 +187,10 @@ def sigma_effect(args, model, points, prev_args, device):
                 second_image = second_image.squeeze()
 
                 loss = F.l1_loss(base_image, second_image)
-                q0 = vec_to_quat(r0)
-                q1 = vec_to_quat(r1)
-                rdist = qdist(q0, q1)
+                rdist = error_cube[sidx][xidx][yidx][2]
+                error_cube[sidx][xidx][yidx][3] = loss.item()
 
-                print("Sigma, R0, R1, Dist, Loss", current_sigma, r0, r1, rdist, loss.item())
+                print("Sigma, Dist, Loss", current_sigma, rdist, loss.item())
 
 
 
