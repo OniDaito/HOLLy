@@ -129,8 +129,12 @@ def sigma_effect(args, model, points, prev_args, device):
     base_points = PointsTen(device=device)
     base_points.from_points(load_obj(args.obj))
     mask_base = []
+    
     for _ in range(len(base_points)):
         mask_base.append(1.0)
+
+    mask_base = torch.tensor(mask_base, device=device)
+
 
     xt = torch.tensor([0.0], dtype=torch.float32)
     yt = torch.tensor([0.0], dtype=torch.float32)
