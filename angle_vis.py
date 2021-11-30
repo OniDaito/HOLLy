@@ -229,12 +229,30 @@ def sigma_effect(args, model, points, prev_args, device):
                     fsigs.append(sigmas[sidx])
                     losses.append(error_cube[sidx][x][y][3])
 
-
     r = np.corrcoef(fsigs, losses)
     t = scipy.stats.kendalltau(fsigs, losses)[0]
     print("Correlation Pearsons", r)
     print("Correlation Tau", t)
 
+    print("Correlation between Sigma and mean/standard dev")
+    fsigs = []
+    variances = []
+
+    for sidx in range(len(sigmas)):
+        fsigs.append(sigmas[sidx])
+        losses = []
+        for x in range(dim_size):
+            for y in range(dim_size):
+                if y != x:
+                    losses.append(error_cube[sidx][x][y][3])
+
+        variances.append(np.var(losses))
+
+    r = np.corrcoef(fsigs, variances)
+    t = scipy.stats.kendalltau(fsigs, variances)[0]
+    print("Correlation Pearsons", r)
+    print("Correlation Tau", t)
+    print("Variances:", variances)
 
 
 def angle_check(args, model, points, prev_args, device):
