@@ -22,6 +22,8 @@ import argparse
 import math
 import pickle
 import os
+from tqdm import tqdm
+import scipy.stats
 from util.math import VecRotTen, VecRot, TransTen, PointsTen, qdist, vec_to_quat, angles_to_axis
 from util.image import NormaliseTorch, NormaliseNull
 
@@ -111,7 +113,7 @@ def sigma_effect(args, model, points, prev_args, device):
     None
     """
 
-    dim_size = 20
+    dim_size = args.dim_size # how many angles to compare to each other
     sigmas = [10,9.0,8.1,7.29,6.56,5.9,5.31,4.78,4.3,3.87,3.65,3.28,2.95,2.66,2.39,2.15,1.94,1.743,1.57,1.41]
     # Which normalisation are we using?
     normaliser = NormaliseNull()
@@ -129,14 +131,20 @@ def sigma_effect(args, model, points, prev_args, device):
     base_points = PointsTen(device=device)
     base_points.from_points(load_obj(args.obj))
     mask_base = []
+    
     for _ in range(len(base_points)):
         mask_base.append(1.0)
+
+    mask_base = torch.tensor(mask_base, device=device)
+
 
     xt = torch.tensor([0.0], dtype=torch.float32)
     yt = torch.tensor([0.0], dtype=torch.float32)
     t = TransTen(xt, yt)
 
-    # Start with no network - build our cube of results
+    # TODO - maybe a pandas dataframe is ideal here?
+
+    # Build our cube of results
     # Each entry has the two angles and the error
     error_cube = []
     for s in sigmas:
@@ -149,16 +157,20 @@ def sigma_effect(args, model, points, prev_args, device):
             for y in range(dim_size):
                 ry = VecRot(0, 0, 0).random().to_ten(device=device)
                 if x > 0:
-                    ry = xlist[0][y]
+                    ry = xlist[0][y][1]
 
-                ylist.append([rx, ry, 0])
+                # Rotation 0, Rotation 1, Rotation network, qdist, loss, loss network 
+                q0 = vec_to_quat(rx)
+                q1 = vec_to_quat(ry)
+                rdist = qdist(q0, q1)
+                ylist.append([rx, ry, 0, rdist, 0, 0])
 
             xlist.append(ylist)
         error_cube.append(xlist)
 
     splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
 
-    for sidx in range(len(sigmas)):
+    for sidx in tqdm(range(len(sigmas))):
         current_sigma = sigmas[sidx]
 
         xlist = error_cube[sidx]
@@ -171,20 +183,104 @@ def sigma_effect(args, model, points, prev_args, device):
                 base_image = splat.render(base_points, r0, t, mask_base, sigma=current_sigma)
                 base_image = base_image.reshape(1, 1, 128, 128)
                 base_image = normaliser.normalise(base_image)
-                base_image = base_image.squeeze()
                 
                 second_image = splat.render(base_points, r1, t, mask_base, sigma=current_sigma)
                 second_image = second_image.reshape(1, 1, 128, 128)
                 second_image = normaliser.normalise(second_image)
                 second_image = second_image.squeeze()
 
-                loss = F.l1_loss(base_image, second_image)
-                q0 = vec_to_quat(r0)
-                q1 = vec_to_quat(r1)
-                rdist = qdist(q0, q1)
+                model_image = model.forward(base_image, points)
+                model_image = normaliser.normalise(model_image.reshape(1, 1, 128, 128))
+                loss_model = F.l1_loss(model_image, base_image)
+                model_image = torch.squeeze(model_image.cpu()[0])
+                model_rots = model.get_rots()
 
-                print("Sigma, R0, R1, Dist, Loss", current_sigma, r0, r1, rdist, loss)
+                base_image = base_image.squeeze()
 
+                loss_base = F.l1_loss(base_image, second_image)
+                rdist = error_cube[sidx][xidx][yidx][3]
+                error_cube[sidx][xidx][yidx][2] = model_rots
+                error_cube[sidx][xidx][yidx][4] = loss_base.item()
+                error_cube[sidx][xidx][yidx][5] = loss_model.item()
+
+                #print("Sigma, Dist, Loss", current_sigma, rdist, loss.item())
+
+    # Now see if there are any correlations?
+    # Start with the distances
+
+    # Commented out as there is none really
+    '''print("Correlations between Distance and error per sigma")
+
+    for sidx in range(len(sigmas)):
+        dists = []
+        losses = []
+
+        for x in range(dim_size):
+            for y in range(dim_size):
+                if y != x:
+                    dists.append(error_cube[sidx][x][y][3])
+                    losses.append(error_cube[sidx][x][y][4])
+
+        print("Sigma", sigmas[sidx])
+        r = np.corrcoef(dists, losses)
+        t = scipy.stats.kendalltau(dists, losses)[0]
+        print("Correlation Pearsons", r)
+        print("Correlation Tau", t)'''
+
+    print("Correlations between Sigma and error")
+
+    fsigs = []
+    losses = []
+    losses_model = []
+
+    for sidx in range(len(sigmas)):
+        for x in range(dim_size):
+            for y in range(dim_size):
+                if y != x:
+                    fsigs.append(sigmas[sidx])
+                    losses.append(error_cube[sidx][x][y][4])
+                    losses_model.append(error_cube[sidx][x][y][5])
+
+    r = np.corrcoef(fsigs, losses)
+    t = scipy.stats.kendalltau(fsigs, losses)
+    #print("Correlation Pearsons Base", r)
+    print("Correlation Tau Base", t)
+
+    r = np.corrcoef(fsigs, losses_model)
+    t = scipy.stats.kendalltau(fsigs, losses_model)
+    #print("Correlation Pearsons Model", r)
+    print("Correlation Tau Model", t)
+
+    print("Correlation between Sigma and Variance on the loss")
+    fsigs = []
+    variances = []
+    variances_model = []
+
+    for sidx in range(len(sigmas)):
+        fsigs.append(sigmas[sidx])
+        losses = []
+        losses_model = []
+
+        for x in range(dim_size):
+            for y in range(dim_size):
+                if y != x:
+                    losses.append(error_cube[sidx][x][y][4])
+                    losses_model.append(error_cube[sidx][x][y][5])
+
+        variances.append(np.var(losses))
+        variances_model.append(np.var(losses_model))
+
+    r = np.corrcoef(fsigs, variances)
+    t = scipy.stats.kendalltau(fsigs, variances)
+    #print("Correlation Pearson Base", r)
+    print("Correlation Tau Base", t)
+    print("Variances Base:", variances)
+
+    r = np.corrcoef(fsigs, variances_model)
+    t = scipy.stats.kendalltau(fsigs, variances_model)
+    #print("Correlation Pearsons Model", r)
+    print("Correlation Tau Model", t)
+    print("Variances Model:", variances_model)
 
 
 def angle_check(args, model, points, prev_args, device):
@@ -277,10 +373,10 @@ def load(args, device):
 
     model.eval()
 
-    #with torch.no_grad():
-    #    results = angle_check(args, model, points, prev_args, device)
+    with torch.no_grad():
+        # results = angle_check(args, model, points, prev_args, device)
+        sigma_effect(args, model, points, prev_args, device)
 
-    sigma_effect(args, model, points, prev_args, device)
     #basic_viz(results)
 
 
@@ -302,6 +398,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--num-rots", default=360, type=int, help="The number of rots to try (default 360)."
+    )
+    parser.add_argument(
+        "--dim-size", default=20, type=int, help="How many angles in loss check (default 20)."
     )
     parser.add_argument(
         "--seed", type=int, default=1, metavar="S", help="random seed (default: 1)"
@@ -331,4 +430,3 @@ if __name__ == "__main__":
     kwargs = {"num_workers": 1, "pin_memory": True} if use_cuda else {}
     load(args, device)
     print("Finished Angle Vis")
-    sys.exit(0)

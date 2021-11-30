@@ -71,6 +71,7 @@ def angle_eval(args, model, points, prev_args, device):
     if prev_args.normalise_basic:
         print("Using basic normaliser.")
         normaliser = NormaliseTorch()
+        normaliser.factor = args.nfactor
 
     # Load some base points from an obj
     loaded_points = load_obj(objpath=args.obj)
@@ -159,6 +160,7 @@ def basic_eval(args, model, points, prev_args, device):
     normaliser = NormaliseNull()
     if prev_args.normalise_basic:
         normaliser = NormaliseTorch()
+        normaliser.factor = args.nfactor
 
     # Setup our splatting pipeline which is added to both dataloader
     # and our network as they use thTraine same settings
@@ -279,6 +281,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--sigma", default=1.25, type=float, help="The sigma value for this testing"
+    )
+    parser.add_argument (
+        "--nfactor", default=1000, type=float, help="The normalisation factor (default: 1000)"
     )
     parser.add_argument(
         "--rots",
