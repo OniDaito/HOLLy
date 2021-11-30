@@ -263,10 +263,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--lerps", type=int, default=10, metavar="S", help="Number of SLERP steps between angles(default: 10)"
     )
-     parser.add_argument(
+    parser.add_argument(
         "--num-angles", type=int, default=100, metavar="S", help="Number of angles to test (default: 100)"
     )
-     parser.add_argument(
+    parser.add_argument(
         "--seed", type=int, default=1, metavar="S", help="random seed (default: 1)"
     )
     parser.add_argument(
