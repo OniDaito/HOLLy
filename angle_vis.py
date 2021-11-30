@@ -207,8 +207,9 @@ def sigma_effect(args, model, points, prev_args, device):
 
         for x in range(dim_size):
             for y in range(dim_size):
-                dists.append(error_cube[sidx][x][y][2])
-                losses.append(error_cube[sidx][x][y][3])
+                if y != x:
+                    dists.append(error_cube[sidx][x][y][2])
+                    losses.append(error_cube[sidx][x][y][3])
 
         print("Sigma", sigmas[sidx])
         r = np.corrcoef(dists, losses)
@@ -222,13 +223,12 @@ def sigma_effect(args, model, points, prev_args, device):
     losses = []
 
     for sidx in range(len(sigmas)):
-       
         for x in range(dim_size):
             for y in range(dim_size):
-                sigmas.append(sigmas[sidx])
-                losses.append(error_cube[sidx][x][y][3])
+                if y != x:
+                    sigmas.append(sigmas[sidx])
+                    losses.append(error_cube[sidx][x][y][3])
 
-    print("Sigma", sigmas[sidx])
     r = np.corrcoef(sigmas, losses)
     t = scipy.stats.kendalltau(sigmas, losses)[0]
     print("Correlation Pearsons", r)
