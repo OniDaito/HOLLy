@@ -314,7 +314,7 @@ def train(
                 loss = calculate_loss(target_shaped, output)
 
             loss.backward()
-            wandb.log({"Points Grad", points.data.grad})
+            wandb.log({"Points Grad": points.data.grad})
             lossy = loss.item()
             optimiser.step()
 
@@ -357,7 +357,7 @@ def train(
                     S.update(epoch, buffer_train.set.size, args.batch_size, batch_idx)
 
             wandb.watch(model)
-            wandb.log({"Points", points.data})
+            wandb.log({"Points": points.data})
 
             if batch_idx % args.save_interval == 0:
                 print("saving checkpoint", batch_idx, epoch)
