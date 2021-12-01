@@ -36,7 +36,7 @@ from net.renderer import Splat
 from net.net import Net
 from util.image import NormaliseNull, NormaliseTorch
 from util.math import Points, PointsTen
-
+import wandb
 
 def calculate_loss_alt(target: torch.Tensor, output: torch.Tensor):
     """
@@ -314,6 +314,7 @@ def train(
                 loss = calculate_loss(target_shaped, output)
 
             loss.backward()
+            wandb.log("Points Grad", points.data.grad)
             lossy = loss.item()
             optimiser.step()
 
@@ -354,6 +355,9 @@ def train(
                     test(args, model, buffer_test, epoch, batch_idx, points, sigma)
                     S.save_points(points, args.savedir, epoch, batch_idx)
                     S.update(epoch, buffer_train.set.size, args.batch_size, batch_idx)
+
+            wandb.watch(model)
+            wandb.log("Points", points.data)
 
             if batch_idx % args.save_interval == 0:
                 print("saving checkpoint", batch_idx, epoch)
@@ -544,6 +548,7 @@ def init(args, device):
 
     optimiser = optim.AdamW(variables)
     print("Starting new model")
+    wandb.init(project="holly", entity="oni")
 
     # Now start the training proper
     train(

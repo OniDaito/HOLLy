@@ -302,7 +302,7 @@ class Train(unittest.TestCase):
         loss = F.l1_loss(result, base_image)
         print("Loss (mean)", loss.item())
         loss.backward()
-        print("Gradients:", loaded_points.data.grad)
+        print("Gradients:", loaded_points.data.grad, loaded_points.data.grad.shape)
 
         # Now T2 bit for the sum loss.
         norm_sum = NormaliseTorch()
@@ -335,7 +335,7 @@ class Train(unittest.TestCase):
         loss = F.l1_loss(result, base_image, reduction="sum")
         print("Loss (sum)", loss.item())
         loss.backward()
-        print("Gradients:", loaded_points2.data.grad)
+        print("Gradients:", loaded_points2.data.grad, loaded_points2.data.grad.shape)
 
 
 if __name__ == "__main__":
