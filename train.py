@@ -38,7 +38,7 @@ from util.image import NormaliseNull, NormaliseTorch
 from util.math import Points, PointsTen
 
 
-def calculate_loss(target: torch.Tensor, output: torch.Tensor):
+def calculate_loss_alt(target: torch.Tensor, output: torch.Tensor):
     """
     Our loss function, used in train and test functions.
 
@@ -58,6 +58,31 @@ def calculate_loss(target: torch.Tensor, output: torch.Tensor):
     """
 
     loss = F.l1_loss(output, target, reduction="mean")
+    return loss
+
+
+
+
+def calculate_loss(target: torch.Tensor, output: torch.Tensor):
+    """
+    Our loss function, used in train and test functions.
+
+    Parameters
+    ----------
+
+    target : torch.Tensor
+        The target, properly shaped.
+
+    output : torch.Tensor
+        The tensor predicted by the network, not shaped
+
+    Returns
+    -------
+    Loss
+        A loss object
+    """
+
+    loss = F.l1_loss(output, target, reduction="sum")
     return loss
 
 
@@ -107,6 +132,8 @@ def test(
 
     if args.normalise_basic:
         normaliser = NormaliseTorch()
+        if args.altloss:
+            normaliser.factor = 1000.0
 
     image_choice = random.randrange(0, args.batch_size)
     # We'd like a batch rather than a similar issue.
@@ -135,7 +162,10 @@ def test(
             )
 
             rots_out.append(model.get_rots())
-            test_loss += calculate_loss(target_shaped, output).item()
+            if args.altloss:
+                test_loss += calculate_loss_alt(target_shaped, output).item()
+            else:
+                test_loss += calculate_loss(target_shaped, output).item()
 
             # Just save one image for now - first in the batch
             if batch_idx == image_choice:
@@ -247,6 +277,8 @@ def train(
 
     if args.normalise_basic:
         normaliser = NormaliseTorch()
+        if args.altloss:
+            normaliser.factor = 1000.0
 
     sigma = sigma_lookup[0]
 
@@ -275,7 +307,12 @@ def train(
 
             output = normaliser.normalise(model(target_shaped, points))
 
-            loss = calculate_loss(target_shaped, output)
+            loss = 0
+            if args.altloss:
+                loss = calculate_loss_alt(target_shaped, output)
+            else:
+                loss = calculate_loss(target_shaped, output)
+
             loss.backward()
             lossy = loss.item()
             optimiser.step()
@@ -652,6 +689,13 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="Only optimise the pose. Default false",
+        required=False,
+    )
+    parser.add_argument(
+        "--altloss",
+        default=False,
+        action="store_true",
+        help="Use the alternative loss function with the lower loss range (default: False).",
         required=False,
     )
     parser.add_argument(
