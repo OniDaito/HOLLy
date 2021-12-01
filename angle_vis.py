@@ -121,13 +121,11 @@ def sigma_effect(args, model, points, prev_args, device):
     if prev_args.normalise_basic:
         normaliser = NormaliseTorch()
 
-
     mask = []
     for _ in range(len(points)):
         mask.append(1.0)
     
     mask = torch.tensor(mask, device=device)
-
     base_points = PointsTen(device=device)
     base_points.from_points(load_obj(args.obj))
     mask_base = []
@@ -136,8 +134,6 @@ def sigma_effect(args, model, points, prev_args, device):
         mask_base.append(1.0)
 
     mask_base = torch.tensor(mask_base, device=device)
-
-
     xt = torch.tensor([0.0], dtype=torch.float32)
     yt = torch.tensor([0.0], dtype=torch.float32)
     t = TransTen(xt, yt)
@@ -208,24 +204,29 @@ def sigma_effect(args, model, points, prev_args, device):
     # Now see if there are any correlations?
     # Start with the distances
 
-    # Commented out as there is none really
-    '''print("Correlations between Distance and error per sigma")
+    print("Correlations between Distance and error per sigma")
 
     for sidx in range(len(sigmas)):
         dists = []
         losses = []
+        losses_network = []
 
         for x in range(dim_size):
             for y in range(dim_size):
                 if y != x:
                     dists.append(error_cube[sidx][x][y][3])
                     losses.append(error_cube[sidx][x][y][4])
+                    losses_network.append(error_cube[sidx][x][y][5])
 
         print("Sigma", sigmas[sidx])
-        r = np.corrcoef(dists, losses)
-        t = scipy.stats.kendalltau(dists, losses)[0]
-        print("Correlation Pearsons", r)
-        print("Correlation Tau", t)'''
+        #r = np.corrcoef(dists, losses)
+        t = scipy.stats.kendalltau(dists, losses)
+        #print("Correlation Pearsons", r)
+        print("Correlation Tau", t)
+        #r = np.corrcoef(dists, losses)
+        t = scipy.stats.kendalltau(dists, losses_network)
+        #print("Correlation Pearsons", r)
+        print("Correlation Tau Model", t)
 
     print("Correlations between Sigma and error")
 

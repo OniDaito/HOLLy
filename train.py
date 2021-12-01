@@ -306,8 +306,8 @@ def train(
             )
 
             output = normaliser.normalise(model(target_shaped, points))
-
             loss = 0
+
             if args.altloss:
                 loss = calculate_loss_alt(target_shaped, output)
             else:
