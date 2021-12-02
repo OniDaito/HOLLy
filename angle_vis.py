@@ -32,7 +32,6 @@ from util.image import NormaliseTorch, NormaliseNull
 SCALE = 40
 TITLE = "Visualising rotations."
 
-
 def basic_viz(rot_pairs):
     """
     Given input and output rotations plot in a way
@@ -141,8 +140,6 @@ def sigma_effect(args, points, prev_args, device):
     yt = torch.tensor([0.0], dtype=torch.float32)
     t = TransTen(xt, yt)
 
-    # Build our cube of results
-    # Each entry has the two angles and the error
     losses_basic = np.zeros((len(sigmas), dim_size, dim_size, 2), dtype=float)
     rotations = []
 
@@ -156,8 +153,6 @@ def sigma_effect(args, points, prev_args, device):
 
             for y in range(dim_size):
                 ry = rotations[y]
-
-                # Rotation 0, Rotation 1, Rotation network, qdist, loss, loss network 
                 q0 = vec_to_quat(rx)
                 q1 = vec_to_quat(ry)
                 rdist = qdist(q0, q1)
@@ -170,16 +165,9 @@ def sigma_effect(args, points, prev_args, device):
 
         for xidx in range(dim_size-1):
             r0 = rotations[xidx]
-
             base_image = splat.render(base_points, r0, t, mask_base, sigma=current_sigma)
             base_image = base_image.reshape(1, 1, 128, 128)
             base_image = normaliser.normalise(base_image)
-
-            #model_image = model.forward(base_image, points)
-            #model_image = normaliser.normalise(model_image.reshape(1, 1, 128, 128))
-            #loss_model = F.l1_loss(model_image, base_image)
-            #model_image = torch.squeeze(model_image.cpu()[0])
-            #model_rots = model.get_rots()
                 
             for yidx in range(xidx+1, dim_size):
                 r1 = rotations[yidx]
@@ -311,6 +299,7 @@ def sigma_effect_model(args, model, points, prev_args, device):
 
     labels = ["Sigma " + str(i) for i in sigmas]
     plt.legend(labels=labels)
+    plt.savefig("sigma_effect_model.jpg")
     plt.show()
 
 
