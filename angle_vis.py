@@ -112,6 +112,7 @@ def sigma_effect(args, model, points, prev_args, device):
     -------
     None
     """
+    import pprint
 
     dim_size = args.dim_size # how many angles to compare to each other
     sigmas = [10,9.0,8.1,7.29,6.56,5.9,5.31,4.78,4.3,3.87,3.65,3.28,2.95,2.66,2.39,2.15,1.94,1.743,1.57,1.41]
@@ -171,25 +172,26 @@ def sigma_effect(args, model, points, prev_args, device):
 
         xlist = error_cube[sidx]
 
-        for xidx in range(dim_size):
-            for yidx in range(dim_size):
-                r0 = error_cube[sidx][xidx][yidx][0]
+        for xidx in range(dim_size-1):
+            r0 = error_cube[sidx][xidx][0][0]
+
+            base_image = splat.render(base_points, r0, t, mask_base, sigma=current_sigma)
+            base_image = base_image.reshape(1, 1, 128, 128)
+            base_image = normaliser.normalise(base_image)
+
+            model_image = model.forward(base_image, points)
+            model_image = normaliser.normalise(model_image.reshape(1, 1, 128, 128))
+            loss_model = F.l1_loss(model_image, base_image)
+            model_image = torch.squeeze(model_image.cpu()[0])
+            model_rots = model.get_rots()
+                
+            for yidx in range(xidx+1, dim_size):
                 r1 = error_cube[sidx][xidx][yidx][1]
 
-                base_image = splat.render(base_points, r0, t, mask_base, sigma=current_sigma)
-                base_image = base_image.reshape(1, 1, 128, 128)
-                base_image = normaliser.normalise(base_image)
-                
                 second_image = splat.render(base_points, r1, t, mask_base, sigma=current_sigma)
                 second_image = second_image.reshape(1, 1, 128, 128)
                 second_image = normaliser.normalise(second_image)
                 second_image = second_image.squeeze()
-
-                model_image = model.forward(base_image, points)
-                model_image = normaliser.normalise(model_image.reshape(1, 1, 128, 128))
-                loss_model = F.l1_loss(model_image, base_image)
-                model_image = torch.squeeze(model_image.cpu()[0])
-                model_rots = model.get_rots()
 
                 base_image = base_image.squeeze()
 
@@ -198,6 +200,10 @@ def sigma_effect(args, model, points, prev_args, device):
                 error_cube[sidx][xidx][yidx][2] = model_rots
                 error_cube[sidx][xidx][yidx][4] = loss_base.item()
                 error_cube[sidx][xidx][yidx][5] = loss_model.item()
+
+                error_cube[sidx][yidx][xidx][2] = model_rots
+                error_cube[sidx][yidx][xidx][4] = loss_base.item()
+                error_cube[sidx][yidx][xidx][5] = loss_model.item()
 
                 #print("Sigma, Dist, Loss", current_sigma, rdist, loss.item())
 
@@ -210,15 +216,19 @@ def sigma_effect(args, model, points, prev_args, device):
         dists = []
         losses = []
         losses_network = []
+        losses_network.append(error_cube[sidx][dim_size-1][0][5])
 
-        for x in range(dim_size):
-            for y in range(dim_size):
-                if y != x:
-                    dists.append(error_cube[sidx][x][y][3])
-                    losses.append(error_cube[sidx][x][y][4])
-                    losses_network.append(error_cube[sidx][x][y][5])
+        for x in range(dim_size-1):
+            losses_network.append(error_cube[sidx][x][0][5])
 
-        print("Sigma", sigmas[sidx])
+            for y in range(x, dim_size):
+                dists.append(error_cube[sidx][x][y][3])
+                losses.append(error_cube[sidx][x][y][4])
+
+        print("Sigma Results:", sigmas[sidx])
+        print("------------------")
+        pp = pprint.PrettyPrinter(indent=4, width=dim_size * 10)
+        pp.pprint(error_cube[sidx]
         #r = np.corrcoef(dists, losses)
         t = scipy.stats.kendalltau(dists, losses)
         #print("Correlation Pearsons", r)
@@ -229,18 +239,19 @@ def sigma_effect(args, model, points, prev_args, device):
         print("Correlation Tau Model", t)
 
     print("Correlations between Sigma and error")
+    print("------------------------------------")
 
     fsigs = []
     losses = []
     losses_model = []
 
     for sidx in range(len(sigmas)):
-        for x in range(dim_size):
-            for y in range(dim_size):
-                if y != x:
-                    fsigs.append(sigmas[sidx])
-                    losses.append(error_cube[sidx][x][y][4])
-                    losses_model.append(error_cube[sidx][x][y][5])
+        for x in range(dim_size-1):
+            losses_model.append(error_cube[sidx][x][0][5])
+
+            for y in range(x, dim_size):
+                fsigs.append(sigmas[sidx])
+                losses.append(error_cube[sidx][x][y][4])
 
     r = np.corrcoef(fsigs, losses)
     t = scipy.stats.kendalltau(fsigs, losses)
@@ -261,6 +272,7 @@ def sigma_effect(args, model, points, prev_args, device):
         fsigs.append(sigmas[sidx])
         losses = []
         losses_model = []
+        losses_model.append(error_cube[sidx][dim_size-1][0][5])
 
         for x in range(dim_size):
             for y in range(dim_size):
