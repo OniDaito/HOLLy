@@ -299,7 +299,9 @@ def sigma_effect_model(args, model, points, prev_args, device):
 
     labels = ["Sigma " + str(i) for i in sigmas]
     plt.legend(labels=labels)
-    plt.figure(figsize=(12, 8))
+    fig = plt.gcf()
+    # Change seaborn plot size
+    fig.set_size_inches(12, 8)
     plt.savefig("sigma_effect_model.jpg")
     plt.show()
 
