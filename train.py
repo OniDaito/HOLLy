@@ -271,6 +271,7 @@ def train(
     """
 
     model.train()
+    wandb.watch(model)
 
     # Which normalisation are we using?
     normaliser = NormaliseNull()
@@ -356,7 +357,6 @@ def train(
                     S.save_points(points, args.savedir, epoch, batch_idx)
                     S.update(epoch, buffer_train.set.size, args.batch_size, batch_idx)
 
-            wandb.watch(model)
             wandb.log({"Points": points.data})
 
             if batch_idx % args.save_interval == 0:
@@ -547,6 +547,10 @@ def init(args, device):
         variables.append({'params': points.data, 'lr': args.plr})
 
     optimiser = optim.AdamW(variables)
+
+    if args.sgd:
+        optimiser = optim.SGD(variables)
+
     print("Starting new model")
     wandb.init(project="holly", entity="oni")
 
@@ -701,6 +705,13 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="Use the alternative loss function with the lower loss range (default: False).",
+        required=False,
+    )
+    parser.add_argument(
+        "--sgd",
+        default=False,
+        action="store_true",
+        help="Use SGD instead of Adam (default: False).",
         required=False,
     )
     parser.add_argument(
