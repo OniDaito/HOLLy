@@ -228,7 +228,7 @@ def sigma_effect(args, model, points, prev_args, device):
         print("Sigma Results:", sigmas[sidx])
         print("------------------")
         pp = pprint.PrettyPrinter(indent=4, width=dim_size * 10)
-        pp.pprint(error_cube[sidx]
+        pp.pprint(error_cube[sidx])
         #r = np.corrcoef(dists, losses)
         t = scipy.stats.kendalltau(dists, losses)
         #print("Correlation Pearsons", r)
