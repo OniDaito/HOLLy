@@ -38,6 +38,7 @@ from util.image import NormaliseNull, NormaliseTorch
 from util.math import Points, PointsTen
 import wandb
 
+
 def calculate_loss_alt(target: torch.Tensor, output: torch.Tensor):
     """
     Our loss function, used in train and test functions.
@@ -59,8 +60,6 @@ def calculate_loss_alt(target: torch.Tensor, output: torch.Tensor):
 
     loss = F.l1_loss(output, target, reduction="mean")
     return loss
-
-
 
 
 def calculate_loss(target: torch.Tensor, output: torch.Tensor):
@@ -183,21 +182,25 @@ def test(
                 if args.predict_sigma:
                     ps = model._final.shape[1] - 1
                     sp = nn.Softplus(threshold=12)
-                    sig_out = torch.tensor([torch.clamp(sp(x[ps]), max=14) for x in model._final])
+                    sig_out = torch.tensor(
+                        [torch.clamp(sp(x[ps]), max=14) for x in model._final]
+                    )
                     S.watch(sig_out, "sigma_out_test")
 
             # soft_plus = torch.nn.Softplus()
             if args.objpath != "":
                 # Assume we are simulating so we have rots to save
                 rots_in.append(ddata[1])
-    
+
     test_loss /= len(batcher)
     S.watch(test_loss, "loss_test")  # loss saved for the last batch only.
     buffer_test.set.shuffle()
     model.train()
 
 
-def cont_sigma(args, current_epoch: int, batch_idx: int, batches_epoch: int, sigma_lookup: list) -> float:
+def cont_sigma(
+    args, current_epoch: int, batch_idx: int, batches_epoch: int, sigma_lookup: list
+) -> float:
     """
     If we are using _cont_sigma, we need to work out the linear
     relationship between the points. We call this each step.
@@ -220,7 +223,9 @@ def cont_sigma(args, current_epoch: int, batch_idx: int, batches_epoch: int, sig
     float
         The sigma to use
     """
-    progress = float(current_epoch * batches_epoch + batch_idx) / float(args.epochs * batches_epoch)
+    progress = float(current_epoch * batches_epoch + batch_idx) / float(
+        args.epochs * batches_epoch
+    )
     middle = (len(sigma_lookup) - 1) * progress
     start = int(math.floor(middle))
     end = int(math.ceil(middle))
@@ -232,6 +237,69 @@ def cont_sigma(args, current_epoch: int, batch_idx: int, batches_epoch: int, sig
     return new_sigma
 
 
+def validate(
+    args,
+    model,
+    buffer_valid: Buffer,
+    points: PointsTen,
+):
+    """
+    Switch to test / eval mode and run a validation step.
+
+    Parameters
+    ----------
+    args : dict
+        The arguments object created in the __main__ function.
+    model : torch.nn.Module
+        The main net model
+    buffer_valid: Buffer
+        The buffer that represents our validation data.
+    points : PointsTen
+        The current PointsTen being trained.
+    sigma : float
+        The current sigma.
+
+    Returns
+    -------
+    Loss
+        A float representing the validation loss
+    """
+    # Put model in eval mode
+    model.eval()
+
+    # Which normalisation are we using?
+    normaliser = NormaliseNull()
+
+    if args.normalise_basic:
+        normaliser = NormaliseTorch()
+        if args.altloss:
+            normaliser.factor = 1000.0
+
+    # We'd like a batch rather than a similar issue.
+    batcher = Batcher(buffer_valid, batch_size=args.batch_size)
+    ddata = batcher.__next__()
+
+    with torch.no_grad():
+        # Offsets is essentially empty for the test buffer.
+        target = ddata[0]
+        target_shaped = normaliser.normalise(
+            target.reshape(args.batch_size, 1, args.image_size, args.image_size)
+        )
+
+        output = normaliser.normalise(model(target_shaped, points))
+        output = output.reshape(args.batch_size, 1, args.image_size, args.image_size)
+
+        valid_loss = 0
+        if args.altloss:
+            valid_loss = calculate_loss_alt(target_shaped, output).item()
+        else:
+            valid_loss = calculate_loss(target_shaped, output).item()
+
+    buffer_valid.set.shuffle()
+    model.train()
+    return valid_loss
+
+
 def train(
     args,
     device,
@@ -240,6 +308,7 @@ def train(
     points,
     buffer_train,
     buffer_test,
+    buffer_validate,
     data_loader,
     optimiser,
 ):
@@ -271,6 +340,7 @@ def train(
     """
 
     model.train()
+    scheduler = optim.ReduceLROnPlateau(optimiser, "min")
     wandb.watch(model)
 
     # Which normalisation are we using?
@@ -282,6 +352,7 @@ def train(
             normaliser.factor = 1000.0
 
     sigma = sigma_lookup[0]
+    S.watch(optimiser.param_groups[0]["lr"], "learning_rate")
 
     # We'd like a batch rather than a similar issue.
     batcher = Batcher(buffer_train, batch_size=args.batch_size)
@@ -315,7 +386,6 @@ def train(
                 loss = calculate_loss(target_shaped, output)
 
             loss.backward()
-            wandb.log({"Points Grad": points.data.grad})
             lossy = loss.item()
             optimiser.step()
 
@@ -348,7 +418,7 @@ def train(
                         batch_idx * args.batch_size,
                         buffer_train.set.size,
                         100.0 * batch_idx * args.batch_size / buffer_train.set.size,
-                        lossy
+                        lossy,
                     )
                 )
 
@@ -356,8 +426,6 @@ def train(
                     test(args, model, buffer_test, epoch, batch_idx, points, sigma)
                     S.save_points(points, args.savedir, epoch, batch_idx)
                     S.update(epoch, buffer_train.set.size, args.batch_size, batch_idx)
-
-            wandb.log({"Points": points.data})
 
             if batch_idx % args.save_interval == 0:
                 print("saving checkpoint", batch_idx, epoch)
@@ -377,6 +445,10 @@ def train(
                 )
 
         buffer_train.set.shuffle()
+
+        # Scheduler update
+        val_loss = validate(args, model, buffer_validate, points)
+        scheduler.step(val_loss)
 
     # Save a final points file once training is complete
     S.save_points(points, args.savedir, epoch, batch_idx)
@@ -410,12 +482,12 @@ def init(args, device):
     optimiser = None
 
     train_set_size = args.train_size
-    # valid_set_size = args.valid_size
+    valid_set_size = args.valid_size
     test_set_size = args.test_size
 
     if args.aug:
         train_set_size = args.train_size * args.num_aug
-        # valid_set_size = args.valid_size * args.num_aug
+        valid_set_size = args.valid_size * args.num_aug
         test_set_size = args.test_size * args.num_aug
 
     # Sigma checks. Do we use a file, do we go continuous etc?
@@ -442,13 +514,27 @@ def init(args, device):
     # the gpu whereas the dataloader splat reads in differing numbers of
     # points.
 
-    splat_in = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device, size=(args.image_size, args.image_size))
-    splat_out = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device, size=(args.image_size, args.image_size))
+    splat_in = Splat(
+        math.radians(90),
+        1.0,
+        1.0,
+        10.0,
+        device=device,
+        size=(args.image_size, args.image_size),
+    )
+    splat_out = Splat(
+        math.radians(90),
+        1.0,
+        1.0,
+        10.0,
+        device=device,
+        size=(args.image_size, args.image_size),
+    )
 
     # Setup the dataloader - either generated from OBJ or fits
     if args.fitspath != "":
         data_loader = ImageLoader(
-            size=args.train_size + args.test_size,
+            size=args.train_size + args.test_size + args.valid_size,
             image_path=args.fitspath,
             sigma=sigma_lookup[0],
         )
@@ -457,17 +543,31 @@ def init(args, device):
             SetType.TRAIN, train_set_size, data_loader, alloc_csv=args.allocfile
         )
         set_test = DataSet(SetType.TEST, test_set_size, data_loader)
+        set_validate = DataSet(SetType.VALID, valid_set_size, data_loader)
 
         buffer_train = BufferImage(
-            set_train, buffer_size=args.buffer_size, device=device,
-                image_size=(args.image_size, args.image_size)
+            set_train,
+            buffer_size=args.buffer_size,
+            device=device,
+            image_size=(args.image_size, args.image_size),
         )
-        buffer_test = BufferImage(set_test, buffer_size=test_set_size,
-            image_size=(args.image_size, args.image_size),  device=device)
+        buffer_test = BufferImage(
+            set_test,
+            buffer_size=test_set_size,
+            image_size=(args.image_size, args.image_size),
+            device=device,
+        )
+
+        buffer_valid = BufferImage(
+            set_validate,
+            buffer_size=valid_set_size,
+            image_size=(args.image_size, args.image_size),
+            device=device,
+        )
 
     elif args.objpath != "":
         data_loader = Loader(
-            size=args.train_size + args.test_size,
+            size=args.train_size + args.test_size + args.valid_size,
             objpath=args.objpath,
             wobble=args.wobble,
             dropout=args.dropout,
@@ -477,12 +577,13 @@ def init(args, device):
             sigma=sigma_lookup[0],
             max_trans=args.max_trans,
             augment=args.aug,
-            num_augment=args.num_aug
+            num_augment=args.num_aug,
         )
 
         fsize = min(data_loader.size - test_set_size, train_set_size)
         set_train = DataSet(SetType.TRAIN, fsize, data_loader, alloc_csv=args.allocfile)
         set_test = DataSet(SetType.TEST, test_set_size, data_loader)
+        set_validate = DataSet(SetType.VALID, valid_set_size, data_loader)
 
         buffer_train = Buffer(
             set_train, splat_in, buffer_size=args.buffer_size, device=device
@@ -490,6 +591,10 @@ def init(args, device):
 
         buffer_test = Buffer(
             set_test, splat_in, buffer_size=test_set_size, device=device
+        )
+
+        buffer_valid = Buffer(
+            set_validate, splat_in, buffer_size=valid_set_size, device=device
         )
     else:
         raise ValueError("You must provide either fitspath or objpath argument.")
@@ -506,7 +611,7 @@ def init(args, device):
         splat_out,
         predict_translate=(not args.no_translate),
         predict_sigma=args.predict_sigma,
-        max_trans=args.max_trans
+        max_trans=args.max_trans,
     ).to(device)
 
     if args.poseonly:
@@ -541,10 +646,10 @@ def init(args, device):
     data_loader.save(args.savedir + "/train_data.pickle")
 
     variables = []
-    variables.append({"params": model.parameters(), 'lr': args.lr})
+    variables.append({"params": model.parameters(), "lr": args.lr})
 
     if not args.poseonly:
-        variables.append({'params': points.data, 'lr': args.plr})
+        variables.append({"params": points.data, "lr": args.plr})
 
     optimiser = optim.AdamW(variables)
 
@@ -552,7 +657,7 @@ def init(args, device):
         optimiser = optim.SGD(variables)
 
     print("Starting new model")
-    wandb.init(project="holly", entity="oni")
+    # wandb.init(project="holly", entity="oni")
 
     # Now start the training proper
     train(
@@ -563,8 +668,9 @@ def init(args, device):
         points,
         buffer_train,
         buffer_test,
+        buffer_valid,
         data_loader,
-        optimiser
+        optimiser,
     )
 
     save_model(model, args.savedir + "/model.tar")
@@ -778,7 +884,7 @@ if __name__ == "__main__":
         help="Path to the obj for generating data",
         required=False,
     )
-    
+
     parser.add_argument(
         "--train-size",
         type=int,

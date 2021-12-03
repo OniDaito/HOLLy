@@ -117,6 +117,8 @@ def sigma_effect(args, points, prev_args, device):
 
     dim_size = args.dim_size # how many angles to compare to each other
     sigmas = [10,8.1,6.56,5.31,4.3,3.65,2.95,2.39,1.94,1.57]
+    sigmas = [10,4.3,2.0]
+
     # Which normalisation are we using?
     normaliser = NormaliseNull()
 
@@ -177,7 +179,7 @@ def sigma_effect(args, points, prev_args, device):
                 second_image = normaliser.normalise(second_image)
                 second_image = second_image.squeeze()
                 base_image = base_image.squeeze()
-                loss_base = F.l1_loss(base_image, second_image)
+                loss_base = F.l1_loss(base_image, second_image, reduction="sum")
                 losses_basic[sidx][xidx][yidx][1] = loss_base.item()
                 losses_basic[sidx][yidx][xidx][1] = loss_base.item()
     
@@ -275,7 +277,7 @@ def sigma_effect_model(args, model, points, prev_args, device):
 
             model_image = model.forward(base_image, points)
             model_image = normaliser.normalise(model_image.reshape(1, 1, 128, 128))
-            loss_model = F.l1_loss(model_image, base_image)
+            loss_model = F.l1_loss(model_image, base_image, reduction="sum")
             model_image = torch.squeeze(model_image.cpu()[0])
             model_rots = model.get_rots()
             r1 = VecRot(model_rots[0][0], model_rots[0][1], model_rots[0][2])
@@ -299,9 +301,6 @@ def sigma_effect_model(args, model, points, prev_args, device):
 
     labels = ["Sigma " + str(i) for i in sigmas]
     plt.legend(labels=labels)
-    fig = plt.gcf()
-    # Change seaborn plot size
-    fig.set_size_inches(12, 8)
     plt.savefig("sigma_effect_model.jpg")
     plt.show()
 
@@ -367,7 +366,7 @@ def angle_check(args, model, points, prev_args, device):
         target = normaliser.normalise(target)
         output = model.forward(target, points)
         output = normaliser.normalise(output.reshape(prev_args.batch_size, 1, 128, 128))
-        loss = F.l1_loss(output, target)
+        loss = F.l1_loss(output, target, reduction="sum")
         prots = model.get_rots().squeeze()
         print("Loss:", loss.item())
         rots_in_out.append((rot, VecRot(float(prots[0][0]), float(prots[0][1]), float(prots[0][2]))))
@@ -398,8 +397,8 @@ def load(args, device):
 
     with torch.no_grad():
         # results = angle_check(args, model, points, prev_args, device)
-        #sigma_effect(args, points, prev_args, device)
-        sigma_effect_model(args, model, points, prev_args, device)
+        sigma_effect(args, points, prev_args, device)
+        #sigma_effect_model(args, model, points, prev_args, device)
 
     #basic_viz(results)
 

@@ -116,7 +116,24 @@ def load_checkpoint(
     epoch = checkpoint["epoch"]
     loss = checkpoint["loss"]
     batch_idx = checkpoint["batch_idx"]
-    args = checkpoint["args"]
+
+    # Default args values
+    class Args(object):
+        pass
+
+    args = Args()
+    args.lr = 0.0004
+    args.normalise_basic = True
+    args.predict_sigma = True
+    args.no_translate = False
+    args.predict_translate = True
+    args.max_trans = 1.0
+
+    try:
+        args = checkpoint["args"]
+    except Exception:
+        print("No prev args in this checkpoint.")
+
     points = checkpoint["points"]
     optimiser = optim.Adam(model.parameters(), lr=args.lr)
 

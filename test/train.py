@@ -19,7 +19,6 @@ from train import cont_sigma
 from util.math import PointsTen, VecRot, TransTen, Points
 from util.plyobj import load_obj
 from net.renderer import Splat
-import torch.nn as nn
 
 class Args:
     def __init__(self):
@@ -241,6 +240,12 @@ class Train(unittest.TestCase):
         # print(prof.key_averages().table(sort_by="self_cpu_time_total"))
 
     def test_grads(self):
+        import torch.optim as optim
+        import torch.nn as nn
+        import seaborn as sns
+        import pandas as pd
+        from pandas import DataFrame
+        import matplotlib.pyplot as plt
 
         class TestRender(nn.Module):
             def __init__(self, device):
@@ -265,15 +270,26 @@ class Train(unittest.TestCase):
             def forward(self, points: PointsTen):
                 return self.render(points)
         
+        #print("MEAN reduction")
         batch_size = 32
         device = torch.device("cpu")
         t = TestRender(device=device)
         loaded_points = load_obj(objpath="./objs/bunny_large.obj")
+        base_points = load_obj(objpath="./objs/bunny_large.obj")
+        base_points = PointsTen().from_points(base_points)
         loaded_points = PointsTen().from_points(loaded_points)
         # Base image
         base_image = None
         norm_mean = NormaliseTorch()
         norm_mean.factor = 1000.0
+        
+        variables = []
+        variables.append({'params': loaded_points.data, 'lr': 0.0004})
+        optimiser = optim.AdamW(variables)
+        #optimiser = optim.SGD(variables)
+        grads_mean = []
+        losses_mean = []
+        diffs_mean = []
 
         with torch.no_grad():
             base_image = t.render(points=loaded_points)
@@ -285,24 +301,40 @@ class Train(unittest.TestCase):
             base_image = torch.stack(images)
             base_image = norm_mean.normalise(base_image)
 
-
-
         # Now run forward - slight rotation. Mean reduction.
         loaded_points.data.requires_grad_(requires_grad=True)
-        t.rot = VecRot(0.1, 0, 0).to_ten(device=device)
-        result = t.forward(points=loaded_points)
-        result = result.reshape(1, 128, 128)
-        images = []
-       
-        for i in range(batch_size):
-            images.append(result)
+  
+        for i in range(10):
+            t.rot = VecRot(0.1, 0, 0).to_ten(device=device)
+            result = t.forward(points=loaded_points)
+            result = result.reshape(1, 128, 128)
+            images = []
+        
+            for i in range(batch_size):
+                images.append(result)
 
-        result = torch.stack(images)
-        result = norm_mean.normalise(result)
-        loss = F.l1_loss(result, base_image)
-        print("Loss (mean)", loss.item())
-        loss.backward()
-        print("Gradients:", loaded_points.data.grad, loaded_points.data.grad.shape)
+            result = torch.stack(images)
+            result = norm_mean.normalise(result)
+            loss = F.l1_loss(result, base_image)
+            #print("Loss (mean)", loss.item())
+            loss.backward()
+            losses_mean.append(loss.item())
+            gm = torch.mean(loaded_points.data.grad).cpu().item()
+            #print("Gradients (mean):", gm)
+            optimiser.step()
+            optimiser.zero_grad()
+            grads_mean.append(gm)
+            diff = torch.sub(base_points.data, loaded_points.data)
+            base_points.data = loaded_points.data.detach().clone()
+            diff = torch.mean(diff)
+            diff = diff.cpu().item()
+            #print("Moved Points Mean", diff)
+            diffs_mean.append(diff)
+
+        #print("SUM reduction")
+        grads_sum = []
+        losses_sum = []
+        diffs_sum = []
 
         # Now T2 bit for the sum loss.
         norm_sum = NormaliseTorch()
@@ -310,6 +342,11 @@ class Train(unittest.TestCase):
         loaded_points2 = PointsTen().from_points(loaded_points2)
         loaded_points2.data.requires_grad_(requires_grad=True)
         t2 = TestRender(device=device)
+
+        variables = []
+        variables.append({'params': loaded_points2.data, 'lr': 0.0004})
+        optimiser2 = optim.AdamW(variables)
+        #optimiser2 = optim.SGD(variables)
 
         with torch.no_grad():
             base_image = t2.render(points=loaded_points2)
@@ -323,20 +360,56 @@ class Train(unittest.TestCase):
             base_image = norm_sum.normalise(base_image)
 
         t2.rot = VecRot(0.1, 0, 0).to_ten(device=device)
-        result = t2.forward(points=loaded_points2)
-        result = result.reshape(1, 128, 128)
-        images = []
-       
-        for i in range(batch_size):
-            images.append(result)
 
-        result = torch.stack(images)
-        result = norm_sum.normalise(result)
-        loss = F.l1_loss(result, base_image, reduction="sum")
-        print("Loss (sum)", loss.item())
-        loss.backward()
-        print("Gradients:", loaded_points2.data.grad, loaded_points2.data.grad.shape)
+        for i in range(10):
+            result = t2.forward(points=loaded_points2)
+            result = result.reshape(1, 128, 128)
+            images = []
+        
+            for i in range(batch_size):
+                images.append(result)
 
+            result = torch.stack(images)
+            result = norm_sum.normalise(result)
+            loss = F.l1_loss(result, base_image, reduction="sum")
+            #print("Loss (sum)", loss.item())
+            losses_sum.append(loss.item())
+            loss.backward()
+            gm = torch.mean(loaded_points2.data.grad).cpu().item()
+            #print("Gradients (mean):", gm)
+            grads_sum.append(gm)
+            optimiser2.step()
+            optimiser2.zero_grad()
+            diff = torch.sub(base_points.data, loaded_points2.data)
+            base_points.data = loaded_points2.data.detach().clone()
+            diff = torch.mean(diff)
+            diff = diff.cpu().item()
+            #print("Moved Points Mean", diff)
+            diffs_sum.append(diff)
+
+        df0 = DataFrame(zip(range(10), grads_mean), columns=("step", "gradient"))
+        print(df0)
+        sns.lineplot(x="step", y="gradient", data=df0, label="Gradients (mean reduction)")
+        df0 = DataFrame(zip(range(10), grads_sum), columns=("step", "gradient"))
+        print(df0)
+        sns.lineplot(x="step", y="gradient", data=df0, label="Gradients (sum reduction)")
+        plt.show()
+
+        df0 = DataFrame(zip(range(10), losses_mean), columns=("step", "loss"))
+        print(df0)
+        sns.lineplot(x="step", y="loss", data=df0, label="Loss (mean reduction)")
+        df0 = DataFrame(zip(range(10), losses_sum), columns=("step", "loss"))
+        print(df0)
+        sns.lineplot(x="step", y="loss", data=df0, label="Loss (sum reduction)")
+        plt.show()
+
+        df0 = DataFrame(zip(range(10), diffs_mean), columns=("step", "diff"))
+        print(df0)
+        sns.lineplot(x="step", y="diff", data=df0, label="Diffs (mean reduction)")
+        df0 = DataFrame(zip(range(10), diffs_sum), columns=("step", "diff"))
+        print(df0)
+        sns.lineplot(x="step", y="diff", data=df0, label="Diffs (sum reduction)")
+        plt.show()
 
 if __name__ == "__main__":
     unittest.main()
