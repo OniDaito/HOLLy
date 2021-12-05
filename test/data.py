@@ -14,6 +14,7 @@ import math
 import torch
 import os
 import random
+import torch.nn.functional as F
 from data.loader import Loader
 from data.imageload import ImageLoader
 from data.sets import DataSet, SetType
@@ -356,7 +357,6 @@ class Data(unittest.TestCase):
         batcher = Batcher(buffer)
         target = batcher.__next__()[0]
 
-     
         loader.save("test_loader.pickle")
         dataset.save("test_dataset_train.pickle")
         dataset_test.save("test_dataset_test.pickle")
@@ -377,6 +377,64 @@ class Data(unittest.TestCase):
             os.remove("test_dataset_test.pickle")
         except OSError:
             pass
+
+    def test_losses(self):
+        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        d = Loader(size=10, objpath="./objs/bunny_large.obj")
+
+        d.set_sigma(sigma=2.0)
+        p, m, r, t, sig = d[0].unpack()
+        base0 = render(p, m, r, t, sig, splat)
+        p, m, r, t, sig = d[1].unpack()
+        base1 = render(p, m, r, t, sig, splat)
+
+        out0 = base0.reshape(1, 1, 128, 128)
+        out1 = base1.reshape(1, 1, 128, 128)
+
+        norm_core = NormaliseTorch()
+        norm_large = NormaliseTorch()
+        norm_large.factor = 1000.0
+
+        print("Intensities")
+        print(torch.sum(out0), torch.sum(out1))
+
+        ncore0 = norm_core.normalise(out0)
+        ncore1 = norm_core.normalise(out1)
+
+        print("Norm core Intensities")
+        print(torch.sum(ncore0), torch.sum(ncore1))
+        
+        nbig0 = norm_large.normalise(out0)
+        nbig1 = norm_large.normalise(out1)
+
+        print("Norm large Intensities")
+        print(torch.sum(nbig0), torch.sum(nbig1))
+
+        print("Pre normed Single image losses")
+        print("Loss smol:", F.l1_loss(out0, out1, reduction="sum").item())
+        print("Loss big:", F.l1_loss(out0, out1, reduction="mean").item())
+
+        print("Single image losses")
+        print("Loss smol:", F.l1_loss(ncore0, ncore1, reduction="sum").item())
+        print("Loss big:", F.l1_loss(nbig0, nbig1, reduction="mean").item())
+
+        bcore0 = base0.reshape(1, 128, 128)
+        bcore0 = bcore0.repeat(32, 1, 1, 1)
+        bcore1 = base1.reshape(1, 128, 128)
+        bcore1 = bcore1.repeat(32, 1, 1, 1)
+        bcore0 = norm_core.normalise(bcore0)
+        bcore1 = norm_core.normalise(bcore1)
+
+        bbig0 = base0.reshape(1, 128, 128)
+        bbig0 = bbig0.repeat(32, 1, 1, 1)
+        bbig1 = base1.reshape(1, 128, 128)
+        bbig1 = bbig1.repeat(32, 1, 1, 1)
+        bbig0 = norm_large.normalise(bbig0)
+        bbig1 = norm_large.normalise(bbig1)
+
+        print("Batch size 32 image losses")
+        print("Loss smol:", F.l1_loss(bcore0, bcore1, reduction="sum").item())
+        print("Loss big:", F.l1_loss(bbig0, bbig1, reduction="mean").item())
 
     def test_paper(self):
         splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
@@ -433,7 +491,6 @@ class Data(unittest.TestCase):
             "dataload_paper_wobble_3.jpg")
         save_image(out4.cpu().detach().numpy(),
             "dataload_paper_wobble_4.jpg")
-
 
         random.seed(30)
         d0 = Loader(

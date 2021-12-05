@@ -10,6 +10,7 @@ rotation generation.
 
 """
 
+from pandas.core.frame import DataFrame
 from pyquaternion import Quaternion
 from net.renderer import Splat
 import torch.nn.functional as F
@@ -30,7 +31,6 @@ from util.image import NormaliseTorch, NormaliseNull
 
 SCALE = 40
 TITLE = "Visualising rotations."
-
 
 def basic_viz(rot_pairs):
     """
@@ -85,7 +85,7 @@ def basic_viz(rot_pairs):
     show(vol, TITLE, axes=1).close()
 
 
-def sigma_effect(args, model, points, prev_args, device):
+def sigma_effect(args, points, prev_args, device):
     """
     What effect does sigma have on the loss, particularly
     with different rotations.
@@ -95,9 +95,6 @@ def sigma_effect(args, model, points, prev_args, device):
     ----------
     args : namespace
         The program command line arguments    
-    
-    model : Net
-        Our neural network model
     
     points: Points
         The points the model came up with
@@ -112,22 +109,27 @@ def sigma_effect(args, model, points, prev_args, device):
     -------
     None
     """
+    import pprint
+    import pandas as pd
+    from pandas import DataFrame
+    import seaborn as sns
+    import matplotlib.pyplot as plt
 
     dim_size = args.dim_size # how many angles to compare to each other
-    sigmas = [10,9.0,8.1,7.29,6.56,5.9,5.31,4.78,4.3,3.87,3.65,3.28,2.95,2.66,2.39,2.15,1.94,1.743,1.57,1.41]
+    sigmas = [10,8.1,6.56,5.31,4.3,3.65,2.95,2.39,1.94,1.57]
+    sigmas = [10,4.3,2.0]
+
     # Which normalisation are we using?
     normaliser = NormaliseNull()
 
     if prev_args.normalise_basic:
         normaliser = NormaliseTorch()
 
-
     mask = []
     for _ in range(len(points)):
         mask.append(1.0)
     
     mask = torch.tensor(mask, device=device)
-
     base_points = PointsTen(device=device)
     base_points.from_points(load_obj(args.obj))
     mask_base = []
@@ -136,156 +138,176 @@ def sigma_effect(args, model, points, prev_args, device):
         mask_base.append(1.0)
 
     mask_base = torch.tensor(mask_base, device=device)
-
-
     xt = torch.tensor([0.0], dtype=torch.float32)
     yt = torch.tensor([0.0], dtype=torch.float32)
     t = TransTen(xt, yt)
 
-    # TODO - maybe a pandas dataframe is ideal here?
+    losses_basic = np.zeros((len(sigmas), dim_size, dim_size, 2), dtype=float)
+    rotations = []
 
-    # Build our cube of results
-    # Each entry has the two angles and the error
-    error_cube = []
-    for s in sigmas:
-        xlist = []
+    for x in range(dim_size):
+        rotations.append(VecRot(0, 0, 0).random().to_ten(device=device))
+    
+    for s in range(len(sigmas)):
 
         for x in range(dim_size):
-            ylist = []
-            rx = VecRot(0, 0, 0).random().to_ten(device=device)
+            rx = rotations[x]
 
             for y in range(dim_size):
-                ry = VecRot(0, 0, 0).random().to_ten(device=device)
-                if x > 0:
-                    ry = xlist[0][y][1]
-
-                # Rotation 0, Rotation 1, Rotation network, qdist, loss, loss network 
+                ry = rotations[y]
                 q0 = vec_to_quat(rx)
                 q1 = vec_to_quat(ry)
                 rdist = qdist(q0, q1)
-                ylist.append([rx, ry, 0, rdist, 0, 0])
-
-            xlist.append(ylist)
-        error_cube.append(xlist)
+                losses_basic[s][x][y][0] = rdist
 
     splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
 
     for sidx in tqdm(range(len(sigmas))):
         current_sigma = sigmas[sidx]
 
-        xlist = error_cube[sidx]
-
-        for xidx in range(dim_size):
-            for yidx in range(dim_size):
-                r0 = error_cube[sidx][xidx][yidx][0]
-                r1 = error_cube[sidx][xidx][yidx][1]
-
-                base_image = splat.render(base_points, r0, t, mask_base, sigma=current_sigma)
-                base_image = base_image.reshape(1, 1, 128, 128)
-                base_image = normaliser.normalise(base_image)
+        for xidx in range(dim_size-1):
+            r0 = rotations[xidx]
+            base_image = splat.render(base_points, r0, t, mask_base, sigma=current_sigma)
+            base_image = base_image.reshape(1, 1, 128, 128)
+            base_image = normaliser.normalise(base_image)
                 
+            for yidx in range(xidx+1, dim_size):
+                r1 = rotations[yidx]
+
                 second_image = splat.render(base_points, r1, t, mask_base, sigma=current_sigma)
                 second_image = second_image.reshape(1, 1, 128, 128)
                 second_image = normaliser.normalise(second_image)
                 second_image = second_image.squeeze()
-
-                model_image = model.forward(base_image, points)
-                model_image = normaliser.normalise(model_image.reshape(1, 1, 128, 128))
-                loss_model = F.l1_loss(model_image, base_image)
-                model_image = torch.squeeze(model_image.cpu()[0])
-                model_rots = model.get_rots()
-
                 base_image = base_image.squeeze()
+                loss_base = F.l1_loss(base_image, second_image, reduction="sum")
+                losses_basic[sidx][xidx][yidx][1] = loss_base.item()
+                losses_basic[sidx][yidx][xidx][1] = loss_base.item()
+    
+    # pp = pprint.PrettyPrinter(indent=4, width=dim_size * 10)
 
-                loss_base = F.l1_loss(base_image, second_image)
-                rdist = error_cube[sidx][xidx][yidx][3]
-                error_cube[sidx][xidx][yidx][2] = model_rots
-                error_cube[sidx][xidx][yidx][4] = loss_base.item()
-                error_cube[sidx][xidx][yidx][5] = loss_model.item()
+    for i in range(len(sigmas)):
+        tf = losses_basic[i]
+        tf = tf.reshape(-1, 2)
+        tf = tf = np.delete(tf, np.where(tf == [0, 0]), axis=0)
+        tf = np.unique(tf, axis=0)
+        df0 = DataFrame(tf, columns=("dist", "loss"))
+        sns.regplot(x="dist", y="loss", data=df0, label="Sigma " + str(sigmas[i]))
 
-                #print("Sigma, Dist, Loss", current_sigma, rdist, loss.item())
+    labels = ["Sigma " + str(i) for i in sigmas]
+    plt.legend(labels=labels)
+    plt.show()
 
-    # Now see if there are any correlations?
-    # Start with the distances
 
-    # Commented out as there is none really
-    '''print("Correlations between Distance and error per sigma")
+def sigma_effect_model(args, model, points, prev_args, device):
+    """
+    What effect does sigma have on the loss, particularly
+    with different rotations.
+    Do rotations that differ a lot give a bigger error or no?
 
-    for sidx in range(len(sigmas)):
-        dists = []
-        losses = []
+    Parameters
+    ----------
+    args : namespace
+        The program command line arguments
 
-        for x in range(dim_size):
-            for y in range(dim_size):
-                if y != x:
-                    dists.append(error_cube[sidx][x][y][3])
-                    losses.append(error_cube[sidx][x][y][4])
+    model : Net
+        Our model we are going to test
+    
+    points: Points
+        The points the model came up with
 
-        print("Sigma", sigmas[sidx])
-        r = np.corrcoef(dists, losses)
-        t = scipy.stats.kendalltau(dists, losses)[0]
-        print("Correlation Pearsons", r)
-        print("Correlation Tau", t)'''
+    prev_args : dictionary
+        The arguments used by the network when it was run.
+    
+    device : 
+        The torch device we are running on.
 
-    print("Correlations between Sigma and error")
+    Returns
+    -------
+    None
+    """
+    import pprint
+    import pandas as pd
+    from pandas import DataFrame
+    import seaborn as sns
+    import matplotlib.pyplot as plt
 
-    fsigs = []
-    losses = []
-    losses_model = []
+    dim_size = args.dim_size  # how many angles to compare to each other
+    sigmas = [10, 8.1, 6.56, 5.31, 4.3, 3.65, 2.95, 2.39, 1.94, 1.57]
+    # Which normalisation are we using?
+    normaliser = NormaliseNull()
 
-    for sidx in range(len(sigmas)):
-        for x in range(dim_size):
-            for y in range(dim_size):
-                if y != x:
-                    fsigs.append(sigmas[sidx])
-                    losses.append(error_cube[sidx][x][y][4])
-                    losses_model.append(error_cube[sidx][x][y][5])
+    if prev_args.normalise_basic:
+        normaliser = NormaliseTorch()
 
-    r = np.corrcoef(fsigs, losses)
-    t = scipy.stats.kendalltau(fsigs, losses)
-    #print("Correlation Pearsons Base", r)
-    print("Correlation Tau Base", t)
+    mask = []
+    for _ in range(len(points)):
+        mask.append(1.0)
+    
+    mask = torch.tensor(mask, device=device)
+    base_points = PointsTen(device=device)
+    base_points.from_points(load_obj(args.obj))
+    mask_base = []
+    
+    for _ in range(len(base_points)):
+        mask_base.append(1.0)
 
-    r = np.corrcoef(fsigs, losses_model)
-    t = scipy.stats.kendalltau(fsigs, losses_model)
-    #print("Correlation Pearsons Model", r)
-    print("Correlation Tau Model", t)
+    mask_base = torch.tensor(mask_base, device=device)
+    xt = torch.tensor([0.0], dtype=torch.float32)
+    yt = torch.tensor([0.0], dtype=torch.float32)
+    t = TransTen(xt, yt)
 
-    print("Correlation between Sigma and Variance on the loss")
-    fsigs = []
-    variances = []
-    variances_model = []
+    # Build our cube of results
+    # Each entry has the two angles and the error
+    losses_basic = np.zeros((len(sigmas), dim_size, 2), dtype=float)
+    rotations = []
 
-    for sidx in range(len(sigmas)):
-        fsigs.append(sigmas[sidx])
-        losses = []
-        losses_model = []
+    for x in range(dim_size):
+        rotations.append(VecRot(0, 0, 0).random().to_ten(device=device))
+           
+    splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
 
-        for x in range(dim_size):
-            for y in range(dim_size):
-                if y != x:
-                    losses.append(error_cube[sidx][x][y][4])
-                    losses_model.append(error_cube[sidx][x][y][5])
+    for sidx in tqdm(range(len(sigmas))):
+        current_sigma = sigmas[sidx]
 
-        variances.append(np.var(losses))
-        variances_model.append(np.var(losses_model))
+        for xidx in range(dim_size-1):
+            r0 = rotations[xidx]
+            base_image = splat.render(base_points, r0, t, mask_base, sigma=current_sigma)
+            base_image = base_image.reshape(1, 1, 128, 128)
+            base_image = normaliser.normalise(base_image)
 
-    r = np.corrcoef(fsigs, variances)
-    t = scipy.stats.kendalltau(fsigs, variances)
-    #print("Correlation Pearson Base", r)
-    print("Correlation Tau Base", t)
-    print("Variances Base:", variances)
+            model_image = model.forward(base_image, points)
+            model_image = normaliser.normalise(model_image.reshape(1, 1, 128, 128))
+            loss_model = F.l1_loss(model_image, base_image, reduction="sum")
+            model_image = torch.squeeze(model_image.cpu()[0])
+            model_rots = model.get_rots()
+            r1 = VecRot(model_rots[0][0], model_rots[0][1], model_rots[0][2])
 
-    r = np.corrcoef(fsigs, variances_model)
-    t = scipy.stats.kendalltau(fsigs, variances_model)
-    #print("Correlation Pearsons Model", r)
-    print("Correlation Tau Model", t)
-    print("Variances Model:", variances_model)
+            # Rotation 0, Rotation 1, Rotation network, qdist, loss, loss network
+            q0 = vec_to_quat(r0)
+            q1 = vec_to_quat(r1)
+            rdist = qdist(q0, q1)
+            losses_basic[sidx][xidx][0] = rdist
+            losses_basic[sidx][xidx][1] = loss_model.item()
+    
+    # pp = pprint.PrettyPrinter(indent=4, width=dim_size * 10)
+
+    for i in range(len(sigmas)):
+        tf = losses_basic[i]
+        tf = tf = np.delete(tf, np.where(tf == [0, 0]), axis=0)
+        tf = np.unique(tf, axis=0)
+        df0 = DataFrame(tf, columns=("dist", "loss"))
+        print(df0)
+        sns.regplot(x="dist", y="loss", data=df0, label="Sigma " + str(sigmas[i]))
+
+    labels = ["Sigma " + str(i) for i in sigmas]
+    plt.legend(labels=labels)
+    plt.savefig("sigma_effect_model.jpg")
+    plt.show()
 
 
 def angle_check(args, model, points, prev_args, device):
     """
-    Given our model and some input angles, run through the 
+    Given our model and some input angles, run through the
     network and see what corresponding angles we get.
 
     Parameters
@@ -344,7 +366,7 @@ def angle_check(args, model, points, prev_args, device):
         target = normaliser.normalise(target)
         output = model.forward(target, points)
         output = normaliser.normalise(output.reshape(prev_args.batch_size, 1, 128, 128))
-        loss = F.l1_loss(output, target)
+        loss = F.l1_loss(output, target, reduction="sum")
         prots = model.get_rots().squeeze()
         print("Loss:", loss.item())
         rots_in_out.append((rot, VecRot(float(prots[0][0]), float(prots[0][1]), float(prots[0][2]))))
@@ -375,7 +397,8 @@ def load(args, device):
 
     with torch.no_grad():
         # results = angle_check(args, model, points, prev_args, device)
-        sigma_effect(args, model, points, prev_args, device)
+        sigma_effect(args, points, prev_args, device)
+        #sigma_effect_model(args, model, points, prev_args, device)
 
     #basic_viz(results)
 
