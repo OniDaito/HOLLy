@@ -73,6 +73,7 @@ class DataSet(object):
         self
         """
         random.shuffle(self.allocated)
+        self.reset()
         return self
 
     def shuffle_chunk(self, size=20):
