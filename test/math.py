@@ -11,7 +11,8 @@ util/math.py
 
 import unittest
 import math
-from util.math import gen_mat_from_rod, mat_to_rod, VecRot, Point, Points
+from random import random
+from util.math import PointsTen, gen_mat_from_rod, mat_to_rod, VecRot, Point, Points
 
 
 class Math(unittest.TestCase):
@@ -37,3 +38,29 @@ class Math(unittest.TestCase):
 
         rot_points = r.rotate_points(points)
         self.assertTrue(math.fabs(rot_points[9].y - 0.9) < 0.0001)
+
+    def test_vec_loss(self):
+        from train import calculate_move_loss
+
+        points = Points()
+        points2 = Points()
+
+        for i in range(10):
+            points.append(Point(i * 0.1 + 0.1, 0, 0))
+            points2.append(Point(i * 0.1 + 0.4, 0, 0))
+
+        tp = PointsTen().from_points(points)
+        tp2 = PointsTen().from_points(points2)
+        loss = calculate_move_loss(tp, tp2)
+        print("Move Loss", loss)
+        points = Points()
+        points2 = Points()
+
+        for i in range(10):
+            points.append(Point(random(), random(), random(), 1.0))
+            points2.append(Point(random(), random(), random(), 1.0))
+
+        tp = PointsTen().from_points(points)
+        tp2 = PointsTen().from_points(points2)
+        loss = calculate_move_loss(tp, tp2)
+        print("Move Loss", loss)

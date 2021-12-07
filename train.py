@@ -103,8 +103,19 @@ def calculate_move_loss(prev_points: PointsTen, new_points: PointsTen):
     Loss
         A loss object
     """
+    # We normalise each vector as we don't want to take into account
+    # the size, but the direction only
+    np = new_points.data.squeeze()[:, :3]
+    nd = torch.sqrt(torch.sum(np * np, dim=1))
+    nd = torch.stack([nd, nd, nd], dim=1).reshape(np.shape)
+    np = np / nd
 
-    mm = torch.mean(prev_points.data.squeeze(), new_points.data.squeeze(), dim=0)
+    sp = prev_points.data.squeeze()[:, :3]
+    sd = torch.sqrt(torch.sum(sp * sp, dim=1))
+    sd = torch.stack([sd, sd, sd], dim=1).reshape(sp.shape)
+    sp = sp / sd
+
+    mm = torch.mean(np - sp, dim=0)
     loss = math.sqrt(mm[0]**2 + mm[1]**2 + mm[2]**2)
     return loss
 
