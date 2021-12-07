@@ -688,6 +688,11 @@ class PointsTen:
     def __len__(self) -> int:
         return int(self.data.shape[0])
 
+    def clone(self):
+        p = PointsTen(device=self.device)
+        p.data = self.data.clone().detach()
+        return p
+
     def from_points(self, points):
         """
         Create our PointsTen from a Points instance

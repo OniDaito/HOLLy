@@ -85,18 +85,18 @@ def calculate_loss(target: torch.Tensor, output: torch.Tensor):
     return loss
 
 
-def calculate_move_loss(prev_points: torch.Tensor, new_points: torch.Tensor):
+def calculate_move_loss(prev_points: PointsTen, new_points: PointsTen):
     """
     How correlated is our movement from one step to the next?
 
     Parameters
     ----------
 
-    prev_points : torch.Tensor
+    prev_points : PointsTen
         The starting points
 
-    new_points : torch.Tensor
-        The points as updated by the 
+    new_points : PointsTen
+        The points as updated by the network
 
     Returns
     -------
@@ -104,7 +104,7 @@ def calculate_move_loss(prev_points: torch.Tensor, new_points: torch.Tensor):
         A loss object
     """
 
-    mm = torch.mean(prev_points.squeeze(), new_points.squeeze(), dim=0)
+    mm = torch.mean(prev_points.data.squeeze(), new_points.data.squeeze(), dim=0)
     loss = math.sqrt(mm[0]**2 + mm[1]**2 + mm[2]**2)
     return loss
 
@@ -409,7 +409,7 @@ def train(
             else:
                 loss = calculate_loss(target_shaped, output)
 
-            prev_points = points.clone().detach()
+            prev_points = points.clone()
             loss.backward()
             lossy = loss.item()
             optimiser.step()
