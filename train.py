@@ -428,7 +428,7 @@ def train(
             # Calculate the move loss and adjust the learning rate on the points accordingly
             new_plr = args.plr * (1.0 - calculate_move_loss(prev_points, points))
             S.watch(new_plr, "points_lr")
-            optim.param_groups[1]['lr'] = new_plr
+            optimiser.param_groups[1]['lr'] = new_plr
             
             # If we are using continuous sigma, lets update it here
             if args.cont and not args.no_sigma:
