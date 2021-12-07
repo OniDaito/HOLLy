@@ -364,7 +364,7 @@ def train(
     """
 
     model.train()
-    scheduler = optim.ReduceLROnPlateau(optimiser, "min")
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimiser, "min")
     wandb.watch(model)
 
     # Which normalisation are we using?
@@ -687,7 +687,7 @@ def init(args, device):
         optimiser = optim.SGD(variables)
 
     print("Starting new model")
-    # wandb.init(project="holly", entity="oni")
+    wandb.init(project="holly", entity="oni")
 
     # Now start the training proper
     train(

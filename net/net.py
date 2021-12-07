@@ -35,7 +35,7 @@ def conv_size(x, padding=0, kernel_size=5, stride=1) -> int:
         The conv stride - default 1
 
     """
-    return int((x - kernel_size + 2*padding) / stride + 1)
+    return int((x - kernel_size + 2 * padding) / stride + 1)
 
 
 def num_flat_features(x):
