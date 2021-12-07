@@ -85,6 +85,30 @@ def calculate_loss(target: torch.Tensor, output: torch.Tensor):
     return loss
 
 
+def calculate_move_loss(prev_points: torch.Tensor, new_points: torch.Tensor):
+    """
+    How correlated is our movement from one step to the next?
+
+    Parameters
+    ----------
+
+    prev_points : torch.Tensor
+        The starting points
+
+    new_points : torch.Tensor
+        The points as updated by the 
+
+    Returns
+    -------
+    Loss
+        A loss object
+    """
+
+    mm = torch.mean(prev_points.squeeze(), new_points.squeeze(), dim=0)
+    loss = math.sqrt(mm[0]**2 + mm[1]**2 + mm[2]**2)
+    return loss
+
+
 def test(
     args,
     model,
@@ -385,10 +409,16 @@ def train(
             else:
                 loss = calculate_loss(target_shaped, output)
 
+            prev_points = points.clone().detach()
             loss.backward()
             lossy = loss.item()
             optimiser.step()
 
+            # Calculate the move loss and adjust the learning rate on the points accordingly
+            new_plr = args.plr * (1.0 - calculate_move_loss(prev_points, points))
+            S.watch(new_plr, "points_lr")
+            optim.param_groups[1]['lr'] = new_plr
+            
             # If we are using continuous sigma, lets update it here
             if args.cont and not args.no_sigma:
                 sigma = cont_sigma(args, epoch, batch_idx, len(batcher), sigma_lookup)

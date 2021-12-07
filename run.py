@@ -103,8 +103,11 @@ def image_test(model, points, device, sigma, input_image, normaliser):
         im = torch.squeeze(im)
         loss = F.l1_loss(x, im, reduction="sum")
         print(float(loss.item()), ",", model.get_rots())
-        # print(x)
         save_image(x, name="guess.jpg")
+
+        if os.path.exists("guess.fits"):
+            os.remove("guess.fits")
+
         save_fits(x, name="guess.fits")
 
 
