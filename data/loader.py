@@ -374,7 +374,6 @@ class Loader(object):
 
             if self.augment:
                 tp = Points().from_chunk(points)
-                new_points = rot.rotate_points(tp).get_chunk()
 
                 for j in range(self.num_augment):
                     rot_a = VecRot(0, 0, math.pi * 2.0 * random.random())
@@ -384,12 +383,9 @@ class Loader(object):
                     q1 = Quaternion(axis=rot_a.get_normalised(),
                                      radians=rot_a.get_length())
                     q2 = q1 * q0
-
                     rot_f = VecRot(q2.axis[0] * q2.radians,
                                    q2.axis[1] * q2.radians,
                                    q2.axis[2] * q2.radians)
-                    
-                    # TODO - is rot_f actually correct. In theory it should be?
     
                     self.transform_vars.append(rot_f.x)
                     self.transform_vars.append(rot_f.y)
@@ -397,11 +393,11 @@ class Loader(object):
                     self.transform_vars.append(tx)
                     self.transform_vars.append(ty)
 
-                    self.points_chunk = len(new_points)
+                    self.points_chunk = len(points)
                     self.masks_chunk = len(dropout_mask)
 
                     for i in range(self.points_chunk):
-                        self.points.append(new_points[i])
+                        self.points.append(points[i])
                     for i in range(self.masks_chunk):
                         self.masks.append(dropout_mask[i])
 

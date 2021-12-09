@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 import json
 import argparse
@@ -10,16 +11,18 @@ from stats.simpleicp import (
     check_convergence_criteria,
     create_homogeneous_transformation_matrix,
 )
+from numba import jit
+import matplotlib.pyplot as plt
 
 
 def icp(
     X_fix,
     X_mov,
-    correspondences=1000,
+    correspondences=500,
     neighbors=10,
     min_planarity=0.3,
-    min_change=1,
-    max_iterations=100,
+    min_change=0.01,
+    max_iterations=20,
 ):
     pcfix = PointCloud(X_fix[:, 0], X_fix[:, 1], X_fix[:, 2])
     pcmov = PointCloud(X_mov[:, 0], X_mov[:, 1], X_mov[:, 2])
@@ -32,7 +35,6 @@ def icp(
     residual_distances = []
 
     for i in range(0, max_iterations):
-
         initial_distances = matching(pcfix, pcmov)
 
         # Todo Change initial_distances without return argument
@@ -51,9 +53,7 @@ def icp(
         )
 
         residual_distances.append(residuals)
-
         pcmov.transform(dH)
-
         H = dH @ H
         pcfix.sel = sel_orig
 
@@ -67,45 +67,39 @@ def icp(
         return (pcfix, pcmov, H)
 
 
-def dist(v, w):
+@jit(nopython=True)
+def distsquare(v, w):
     return (v[0] - w[0])**2 + (v[1] - w[1])**2 + (v[2] - w[2])**2
 
 
-def rmsd_score(fixed: PointCloud, moved: PointCloud):
-    # Convert the clouds to something more handy
-    c0 = []
-    for i in range(len(fixed.x)):
-        c0.append((fixed.x[i], fixed.y[i], fixed.z[i]))
-
-    c1 = []
-    for i in range(len(moved.x)):
-        c1.append((moved.x[i], moved.y[i], moved.z[i]))
-
+@jit(nopython=True)
+def rmsd_score(fixed: List, moved: List):
     total_dist = 0
 
-    for v in c0:
+    for v in fixed:
         min_d = 1000000
         min_i = 0
 
-        for widx in range(len(c1)):
-            w = c1[widx]
-            dd = dist(v, w)
+        for widx in range(len(moved)):
+            w = moved[widx]
+            dd = distsquare(v, w)
             if dd < min_d:
                 min_d = dd
                 min_i = widx
 
-        if len(c1) == 0:
+        if len(moved) == 0:
             break
 
-        del c1[min_i]
-        total_dist += math.sqrt(min_d)**2
+        del moved[min_i]
+        total_dist += math.sqrt(min_d)
 
-    total_dist /= len(c0)
+    total_dist /= len(fixed)
     return total_dist
 
 
 def perform_icp(path):
     models = []
+    scores = []
 
     with open(path + "/objs/animation.json") as json_file:
         animation = json.load(json_file)
@@ -118,17 +112,34 @@ def perform_icp(path):
                 x = v["vertices"][idx]["x"]
                 y = v["vertices"][idx]["y"]
                 z = v["vertices"][idx]["z"]
-
                 dirs.append((x, y, z))
 
             models.append(np.array(dirs))
 
     dist = 20
-    for i in range(dist, len(models), 10):
+
+    for midx in range(dist, len(models), 10):
         # Order seems to matter. No idea why?
-        pcfix, pcmov, _ = icp(models[i], models[i - dist])
-        score = rmsd_score(pcfix, pcmov)
-        print(i, score)
+        pcfix, pcmov, _ = icp(models[midx], models[midx - dist])
+
+        # Convert the clouds to something more handy
+        c0 = []
+        for i in range(len(pcfix.x)):
+            c0.append((pcfix.x[i], pcfix.y[i], pcfix.z[i]))
+
+        c1 = []
+        for i in range(len(pcmov.x)):
+            c1.append((pcmov.x[i], pcmov.y[i], pcmov.z[i]))
+
+        score = rmsd_score(c0, c1)
+        del c0
+        del c1
+        del pcfix
+        del pcmov
+        scores.append((midx, score))
+        print(midx, score)
+
+    return scores
 
 
 if __name__ == "__main__":
@@ -142,4 +153,7 @@ if __name__ == "__main__":
 
     # Initial setup of PyTorch
     args = parser.parse_args()
-    perform_icp(args.savedir)
+    scores = perform_icp(args.savedir)
+    p = list(zip(*scores))
+    plt.plot(p[0], p[1])
+    plt.show()

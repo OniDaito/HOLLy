@@ -36,7 +36,6 @@ from net.renderer import Splat
 from net.net import Net
 from util.image import NormaliseNull, NormaliseTorch
 from util.math import Points, PointsTen
-import wandb
 
 
 def calculate_loss_alt(target: torch.Tensor, output: torch.Tensor):
@@ -376,7 +375,6 @@ def train(
 
     model.train()
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimiser, "min")
-    wandb.watch(model)
 
     # Which normalisation are we using?
     normaliser = NormaliseNull()
@@ -698,7 +696,6 @@ def init(args, device):
         optimiser = optim.SGD(variables)
 
     print("Starting new model")
-    wandb.init(project="holly", entity="oni")
 
     # Now start the training proper
     train(

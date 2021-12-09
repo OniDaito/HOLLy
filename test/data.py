@@ -252,8 +252,8 @@ class Data(unittest.TestCase):
     def test_augment(self):
         splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
         d0 = Loader(
-            size=20, objpath="./objs/teapot_large.obj", dropout=0.0,
-            augment=True, num_augment=2)
+            size=2, objpath="./objs/teapot_large.obj", dropout=0.0,
+            augment=True, num_augment=10)
 
         d0.set_sigma(sigma=2.0)
 
@@ -263,10 +263,10 @@ class Data(unittest.TestCase):
         (p, m, r, t, sig) = d0[1].unpack()
         out1 = render(p, m, r, t, sig, splat)
 
-        (p, m, r, t, sig) = d0[10].unpack()
+        (p, m, r, t, sig) = d0[2].unpack()
         out2 = render(p, m, r, t, sig, splat)
 
-        self.assertTrue(d0.size == 40)
+        self.assertTrue(d0.size == 20)
 
         #self.assertFalse(torch.sum(torch.abs(torch.sub(out1, out0))) < 0.1)
 

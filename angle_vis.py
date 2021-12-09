@@ -32,6 +32,7 @@ from util.image import NormaliseTorch, NormaliseNull
 SCALE = 40
 TITLE = "Visualising rotations."
 
+
 def basic_viz(rot_pairs):
     """
     Given input and output rotations plot in a way
@@ -374,6 +375,7 @@ def angle_check(args, model, points, prev_args, device):
         del output
 
     return rots_in_out
+
 
 def load(args, device):
     """ Begin our training routine on the selected device."""

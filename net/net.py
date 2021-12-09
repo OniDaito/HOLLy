@@ -277,8 +277,8 @@ class Net(nn.Module):
             nx = 2
 
             if self.predict_translate:
-                tx = (torch.tanh(rot[nx+1]) * 2.0) * self.max_shift
-                ty = (torch.tanh(rot[nx+2]) * 2.0) * self.max_shift
+                tx = (torch.tanh(rot[nx + 1]) * 2.0) * self.max_shift
+                ty = (torch.tanh(rot[nx + 2]) * 2.0) * self.max_shift
                 nx += 2
 
             sp = nn.Softplus(threshold=12)
