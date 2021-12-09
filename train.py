@@ -36,6 +36,7 @@ from net.renderer import Splat
 from net.net import Net
 from util.image import NormaliseNull, NormaliseTorch
 from util.math import Points, PointsTen
+from icp_test import rmsd_score
 
 
 def calculate_loss_alt(target: torch.Tensor, output: torch.Tensor):
@@ -79,14 +80,14 @@ def calculate_loss(target: torch.Tensor, output: torch.Tensor):
     Loss
         A loss object
     """
-
     loss = F.l1_loss(output, target, reduction="sum")
     return loss
 
 
 def calculate_move_loss(prev_points: PointsTen, new_points: PointsTen):
     """
-    How correlated is our movement from one step to the next?
+    How correlated is our movement from one step to the next? Use 
+    ICP and Nearest Neighbour RMSD
 
     Parameters
     ----------
@@ -99,23 +100,20 @@ def calculate_move_loss(prev_points: PointsTen, new_points: PointsTen):
 
     Returns
     -------
-    Loss
-        A loss object
+    Loss : float
+        The loss score
     """
-    # We normalise each vector as we don't want to take into account
-    # the size, but the direction only
-    np = new_points.data.squeeze()[:, :3]
-    nd = torch.sqrt(torch.sum(np * np, dim=1))
-    nd = torch.stack([nd, nd, nd], dim=1).reshape(np.shape)
-    np = np / nd
+    p0 = prev_points.get_points()
+    pv0 = []
+    for p in p0.data:
+        pv0.append((p.x, p.y, p.z))
 
-    sp = prev_points.data.squeeze()[:, :3]
-    sd = torch.sqrt(torch.sum(sp * sp, dim=1))
-    sd = torch.stack([sd, sd, sd], dim=1).reshape(sp.shape)
-    sp = sp / sd
+    p1 = new_points.get_points()
+    pv1 = []
+    for p in p1.data:
+        pv1.append((p.x, p.y, p.z))
 
-    mm = torch.mean(np - sp, dim=0)
-    loss = math.sqrt(mm[0]**2 + mm[1]**2 + mm[2]**2)
+    loss = rmsd_score(pv0, pv1)
     return loss
 
 
@@ -345,6 +343,7 @@ def train(
     buffer_validate,
     data_loader,
     optimiser,
+    optimiser_points
 ):
     """
     Now we've had some setup, lets do the actual training.
@@ -367,7 +366,8 @@ def train(
         A data loader (image or simulated).
     optimiser : torch.optim.Optimizer
         The optimiser we want to use.
-
+    optimiser_points : torch.optim.Optimizer
+        The optimiser for the points
     Returns
     -------
     None
@@ -375,6 +375,7 @@ def train(
 
     model.train()
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimiser, "min")
+    scheduler_points = optim.lr_scheduler.ReduceLROnPlateau(optimiser_points, "min")
 
     # Which normalisation are we using?
     normaliser = NormaliseNull()
@@ -389,6 +390,9 @@ def train(
 
     # We'd like a batch rather than a similar issue.
     batcher = Batcher(buffer_train, batch_size=args.batch_size)
+
+    # Keep a copy of the points so we can test for a good structure
+    prev_points = points.clone()
 
     # Begin the epochs and training
     for epoch in range(args.epochs):
@@ -418,15 +422,12 @@ def train(
             else:
                 loss = calculate_loss(target_shaped, output)
 
-            prev_points = points.clone()
             loss.backward()
             lossy = loss.item()
             optimiser.step()
 
-            # Calculate the move loss and adjust the learning rate on the points accordingly
-            new_plr = args.plr * (1.0 - calculate_move_loss(prev_points, points))
-            S.watch(new_plr, "points_lr")
-            optimiser.param_groups[1]['lr'] = new_plr
+            if not args.poseonly:
+                optimiser_points.step()
             
             # If we are using continuous sigma, lets update it here
             if args.cont and not args.no_sigma:
@@ -440,9 +441,6 @@ def train(
             if batch_idx % args.log_interval == 0:
                 # Add watches here
                 S.watch(lossy, "loss_train")
-                # Temporary ignore of images in the DB
-                # S.watch(target[0], "target")
-                # S.watch(output[0], "output")
                 if args.predict_sigma or args.cont:
                     S.watch(sigma, "sigma_in")
 
@@ -460,6 +458,15 @@ def train(
                         lossy,
                     )
                 )
+
+                if batch_idx % (args.log_interval * 10) == 0:
+                    # Now attempt to see if we have a good model
+                    # Calculate the move loss and adjust the learning rate on the points accordingly
+                    # We need a window of at least 10 steps at log interval 100.
+                    scheduler_points.step(calculate_move_loss(prev_points, points))
+                    new_plr = optimiser_points.param_groups[0]['lr'] 
+                    S.watch(new_plr, "points_lr")
+                    prev_points = points.clone()
 
                 if args.save_stats:
                     test(args, model, buffer_test, epoch, batch_idx, points, sigma)
@@ -686,11 +693,14 @@ def init(args, device):
 
     variables = []
     variables.append({"params": model.parameters(), "lr": args.lr})
+    optimiser = optim.AdamW(variables)
 
+    variables = []
+   
     if not args.poseonly:
         variables.append({"params": points.data, "lr": args.plr})
 
-    optimiser = optim.AdamW(variables)
+    optimiser_points = optim.AdamW(variables)
 
     if args.sgd:
         optimiser = optim.SGD(variables)
@@ -709,6 +719,7 @@ def init(args, device):
         buffer_valid,
         data_loader,
         optimiser,
+        optimiser_points
     )
 
     save_model(model, args.savedir + "/model.tar")
