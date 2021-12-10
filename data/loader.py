@@ -373,7 +373,6 @@ class Loader(object):
             points, dropout_mask = self._create_points_mask()
 
             if self.augment:
-                tp = Points().from_chunk(points)
 
                 for j in range(self.num_augment):
                     rot_a = VecRot(0, 0, math.pi * 2.0 * random.random())

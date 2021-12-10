@@ -21,6 +21,7 @@ from data.sets import DataSet, SetType
 from data.buffer import Buffer, BufferImage
 from data.batcher import Batcher
 from net.renderer import Splat
+from util.math import vec_to_quat, qdist
 from util.render import render
 from util.image import NormaliseTorch
 
@@ -250,6 +251,11 @@ class Data(unittest.TestCase):
             #           "dataload_spawn_test_0.jpg")
 
     def test_augment(self):
+        import seaborn as sns
+        import pandas as pd
+        import numpy as np
+        import matplotlib.pyplot as plt
+        
         splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
         d0 = Loader(
             size=2, objpath="./objs/teapot_large.obj", dropout=0.0,
@@ -267,7 +273,6 @@ class Data(unittest.TestCase):
         out2 = render(p, m, r, t, sig, splat)
 
         self.assertTrue(d0.size == 20)
-
         #self.assertFalse(torch.sum(torch.abs(torch.sub(out1, out0))) < 0.1)
 
         from util.image import save_image
@@ -277,6 +282,64 @@ class Data(unittest.TestCase):
                    "dataload_augment_test_1.jpg")
         save_image(out2.cpu().detach().numpy(),
                    "dataload_augment_test_2.jpg")
+
+        # Take a look at the difference this makes on quat distances
+        data_norm = Loader(
+            size=40000, objpath="./objs/teapot_large.obj")
+
+        data_aug = Loader(
+            size=4000, objpath="./objs/teapot_large.obj", augment=False, num_augment=10)
+
+        # Plot heatmaps
+        # Take each set of differences and turn them into a histogram
+        qbase = [0, 0, 0, 1.0]
+        num_classes = 100
+        bin_size = math.sqrt(2) / num_classes
+        bins = [i * bin_size for i in range(int(math.sqrt(2)/bin_size))]
+
+        hists = []
+        diffs = []
+
+        for d in data_norm:
+            (p, m, r, t, sig) = d.unpack()
+            qnew = vec_to_quat(r)
+            diffs.append(qdist(qbase, qnew))
+
+        hist, edges = np.histogram(diffs, bins=bins)
+        hists.append(hist)
+
+        dframe = pd.DataFrame(hists)
+        ax = sns.heatmap(data=dframe)
+        ax.set(title="Rotation Different Heatmap for a normal loader.",
+            xlabel="Difference in 100 Bins.",
+            ylabel="Steps in training.",)
+        plt.show()
+
+        hists = []
+        diffs = []
+        
+        for d in data_aug:
+            (p, m, r, t, sig) = d.unpack()
+            qnew = vec_to_quat(r)
+            diffs.append(qdist(qbase, qnew))
+
+        hist, edges = np.histogram(diffs, bins=bins)
+        hists.append(hist)
+
+        dframe = pd.DataFrame(hists)
+        ax = sns.heatmap(data=dframe)
+        ax.set(title="Rotation Different Heatmap for an augmented loader.",
+            xlabel="Difference in 100 Bins.",
+            ylabel="Steps in training.",)
+
+        # Create our heatmap from the histograms with Seaborn and Pandas.
+        dframe = pd.DataFrame(hists)
+        ax = sns.heatmap(data=dframe)
+        ax.set(title="Rotation Different Heatmap.",
+            xlabel="Difference in 100 Bins.",
+            ylabel="Steps in training.",)
+        plt.show()
+
 
     def test_all(self):
         splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")

@@ -464,7 +464,7 @@ def train(
 
             steps = batch_idx + (epoch * (buffer_train.set.size / args.batch_size))
 
-            if steps % args.pinterval == 0:
+            if steps % args.pinterval == 0 and args.adapt: 
                 # Now attempt to see if we have a good model
                 # Calculate the move loss and adjust the learning rate on the points accordingly
                 # We need a window of at least 10 steps at log interval 100.
@@ -493,8 +493,9 @@ def train(
         buffer_train.set.shuffle()
 
         # Scheduler update again but on validation set
-        val_loss = validate(args, model, buffer_validate, points)
-        scheduler.step(val_loss)
+        if args.adapt:
+            val_loss = validate(args, model, buffer_validate, points)
+            scheduler.step(val_loss)
 
     # Save a final points file once training is complete
     S.save_points(points, args.savedir, epoch, batch_idx)
@@ -884,6 +885,13 @@ if __name__ == "__main__":
         type=int,
         default=10,
         help="how many augmentations to perform per datum (default 10)",
+    )
+    parser.add_argument(
+        "--adapt",
+        default=False,
+        action="store_true",
+        help="Adaptive learning rate (default: False)",
+        required=False,
     )
     parser.add_argument(
         "--save-interval",
