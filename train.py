@@ -35,7 +35,7 @@ from stats import stats as S
 from net.renderer import Splat
 from net.net import Net
 from util.image import NormaliseNull, NormaliseTorch
-from util.math import Points, PointsTen
+from util.math import PointsTen
 from icp_test import rmsd_score
 
 
@@ -86,7 +86,7 @@ def calculate_loss(target: torch.Tensor, output: torch.Tensor):
 
 def calculate_move_loss(prev_points: PointsTen, new_points: PointsTen):
     """
-    How correlated is our movement from one step to the next? Use 
+    How correlated is our movement from one step to the next? Use
     ICP and Nearest Neighbour RMSD
 
     Parameters
@@ -343,7 +343,6 @@ def train(
     buffer_validate,
     data_loader,
     optimiser,
-    optimiser_points
 ):
     """
     Now we've had some setup, lets do the actual training.
@@ -374,8 +373,10 @@ def train(
     """
 
     model.train()
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimiser, "min")
-    scheduler_points = optim.lr_scheduler.ReduceLROnPlateau(optimiser_points, "min")
+    # Set a lower limit on the lr, with a lower one on the plr. Factor is less harsh.
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimiser, mode="min", patience=5, factor=0.5, min_lr=[args.lr / 10, args.plr / 100]
+    )
 
     # Which normalisation are we using?
     normaliser = NormaliseNull()
@@ -426,9 +427,6 @@ def train(
             lossy = loss.item()
             optimiser.step()
 
-            if not args.poseonly:
-                optimiser_points.step()
-            
             # If we are using continuous sigma, lets update it here
             if args.cont and not args.no_sigma:
                 sigma = cont_sigma(args, epoch, batch_idx, len(batcher), sigma_lookup)
@@ -459,19 +457,21 @@ def train(
                     )
                 )
 
-                if batch_idx % (args.log_interval * 10) == 0:
-                    # Now attempt to see if we have a good model
-                    # Calculate the move loss and adjust the learning rate on the points accordingly
-                    # We need a window of at least 10 steps at log interval 100.
-                    scheduler_points.step(calculate_move_loss(prev_points, points))
-                    new_plr = optimiser_points.param_groups[0]['lr'] 
-                    S.watch(new_plr, "points_lr")
-                    prev_points = points.clone()
-
                 if args.save_stats:
                     test(args, model, buffer_test, epoch, batch_idx, points, sigma)
                     S.save_points(points, args.savedir, epoch, batch_idx)
                     S.update(epoch, buffer_train.set.size, args.batch_size, batch_idx)
+
+            steps = batch_idx + (epoch * (buffer_train.set.size / args.batch_size))
+
+            if steps % args.pinterval == 0:
+                # Now attempt to see if we have a good model
+                # Calculate the move loss and adjust the learning rate on the points accordingly
+                # We need a window of at least 10 steps at log interval 100.
+                scheduler.step(calculate_move_loss(prev_points, points))
+                new_plr = optimiser.param_groups[1]["lr"]
+                S.watch(new_plr, "points_lr")
+                prev_points = points.clone()
 
             if batch_idx % args.save_interval == 0:
                 print("saving checkpoint", batch_idx, epoch)
@@ -492,7 +492,7 @@ def train(
 
         buffer_train.set.shuffle()
 
-        # Scheduler update
+        # Scheduler update again but on validation set
         val_loss = validate(args, model, buffer_validate, points)
         scheduler.step(val_loss)
 
@@ -693,14 +693,11 @@ def init(args, device):
 
     variables = []
     variables.append({"params": model.parameters(), "lr": args.lr})
-    optimiser = optim.AdamW(variables)
 
-    variables = []
-   
     if not args.poseonly:
         variables.append({"params": points.data, "lr": args.plr})
 
-    optimiser_points = optim.AdamW(variables)
+    optimiser = optim.AdamW(variables)
 
     if args.sgd:
         optimiser = optim.SGD(variables)
@@ -719,7 +716,6 @@ def init(args, device):
         buffer_valid,
         data_loader,
         optimiser,
-        optimiser_points
     )
 
     save_model(model, args.savedir + "/model.tar")
@@ -834,6 +830,13 @@ if __name__ == "__main__":
         metavar="N",
         help="how many batches to wait before logging training \
                           status",
+    )
+    parser.add_argument(
+        "--pinterval",
+        type=int,
+        default=1000,
+        metavar="N",
+        help="how many steps to wait before checking the points learning rate (default: 1000)",
     )
     parser.add_argument(
         "--num-points",
