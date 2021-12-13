@@ -34,12 +34,14 @@ def save_image(img_tensor, name="ten.jpg"):
         img_tensor = img_tensor / mm
         img = Image.fromarray(np.uint8(img_tensor.numpy() * 255))
         img.save(name, "JPEG")
+        img.close()
     else:
         # Assume a numpy array
         mm = np.max(img_tensor)
         img_tensor = img_tensor / mm
         img = Image.fromarray(np.uint8(img_tensor * 255))
         img.save(name, "JPEG")
+        img.close()
 
 
 def save_fits(img_tensor, name="ten.fits"):

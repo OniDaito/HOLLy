@@ -62,6 +62,7 @@ def heatmap(R, sx, sy, filename):
     plt.axis("off")
     plt.imshow(R, cmap=my_cmap, vmin=-b, vmax=b, interpolation="nearest")
     plt.savefig(filename)
+    plt.close()
     # plt.show()
 
 

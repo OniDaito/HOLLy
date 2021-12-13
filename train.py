@@ -766,6 +766,13 @@ if __name__ == "__main__":
                           (default: 0.1).",
     )
     parser.add_argument(
+        "--reduction",
+        type=float,
+        default=0.75,
+        help="The factor to reduce the learning rate by \
+                          (default: 0.75).",
+    )
+    parser.add_argument(
         "--max-spawn",
         type=int,
         default=1,
