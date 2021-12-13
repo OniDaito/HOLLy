@@ -375,7 +375,7 @@ def train(
     model.train()
     # Set a lower limit on the lr, with a lower one on the plr. Factor is less harsh.
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimiser, mode="min", patience=5, factor=0.5, min_lr=[args.lr / 10, args.plr / 100]
+        optimiser, mode="min", patience=10, factor=0.5, min_lr=[args.lr / 10, args.plr / 100]
     )
 
     # Which normalisation are we using?
