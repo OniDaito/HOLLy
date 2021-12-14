@@ -70,8 +70,7 @@ def init_points(num_points=500, device="cpu", deterministic=False) -> PointsTen:
         # TODO - can we guarantee this gives the same numbers?
         random.seed(a=9001)
 
-    # Everything is roughly centred in the images so spawn
-    # the points close to the centre
+    # We have a range of -2 to 2 but we start with just the -1 to 1 cube.
     for i in range(0, num_points):
         p = Point(
             random.uniform(-1.0, 1.0),
@@ -84,6 +83,49 @@ def init_points(num_points=500, device="cpu", deterministic=False) -> PointsTen:
     fpoints = PointsTen(device=device)
     fpoints.from_points(points)
     return fpoints
+
+
+def init_points_spot(num_points=500, device="cpu", deterministic=False) -> PointsTen:
+    """
+    Rather than load a torus or fixed shape, create a
+    tensor that contains a random number of points.
+    This one uses a gaussian distribution centred around the origin
+
+    Parameters
+    ----------
+    num_points : int
+        The number of points to make (default 500).
+    device : str
+        The device that holds the points (cuda / cpu).
+        Default - cpu.
+    deterministic : bool
+        Are we going for a deterministic run?
+        Default - False.
+
+    Returns
+    -------
+    PointsTen
+        Our Points in PointsTen form.
+    """
+    points = Points()
+    if deterministic:
+        random.seed(a=9001)
+
+    # Everything is roughly centred in the images so spawn
+    # the points close to the centre
+    for i in range(0, num_points):
+        p = Point(
+            max(-1.5, min(random.gauss(0, 0.1), 1.5)),
+            max(-1.5, min(random.gauss(0, 0.1), 1.5)),
+            max(-1.5, min(random.gauss(0, 0.1), 1.5)),
+            1.0,
+        )
+        points.append(p)
+
+    fpoints = PointsTen(device=device)
+    fpoints.from_points(points)
+    return fpoints
+
 
 
 def save_points(filename, points: Points):

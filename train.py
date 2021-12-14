@@ -24,7 +24,7 @@ import random
 import argparse
 import os
 import sys
-from util.points import load_points, save_points, init_points
+from util.points import load_points, save_points, init_points, init_points_spot
 from util.loadsave import save_checkpoint, save_model
 from data.loader import Loader
 from data.imageload import ImageLoader
@@ -654,6 +654,11 @@ def init(args, device):
         args.num_points, device=device, deterministic=args.deterministic
     )
 
+    if args.ipspot:
+        points = init_points_spot(
+            args.num_points, device=device, deterministic=args.deterministic
+        )
+
     model = Net(
         splat_out,
         predict_translate=(not args.no_translate),
@@ -806,6 +811,13 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="Turn off translation prediction in the network \
+                        (default: false)",
+    )
+    parser.add_argument(
+        "--ipspot",
+        action="store_true",
+        default=False,
+        help="Initialise points across space with a gaussian and a spot in the middle.\
                         (default: false)",
     )
     parser.add_argument(
