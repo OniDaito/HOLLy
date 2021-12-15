@@ -493,9 +493,9 @@ def train(
         buffer_train.set.shuffle()
 
         # Scheduler update again but on validation set
-        if args.adapt:
-            val_loss = validate(args, model, buffer_validate, points)
-            scheduler.step(val_loss)
+        #if args.adapt:
+        #    val_loss = validate(args, model, buffer_validate, points)
+        #    scheduler.step(val_loss)
 
     # Save a final points file once training is complete
     S.save_points(points, args.savedir, epoch, batch_idx)
@@ -687,7 +687,6 @@ def init(args, device):
             points = PointsTen(device=device)
             points.from_points(tpoints)
         else:
-            points = init_points(num_points=args.num_points, device=device)
             save_points(args.savedir + "/points.csv", points)
 
         points.data.requires_grad_(requires_grad=True)
