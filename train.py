@@ -470,6 +470,7 @@ def train(
                 # We need a window of at least 10 steps at log interval 100.
                 scheduler.step(calculate_move_loss(prev_points, points))
                 new_plr = optimiser.param_groups[1]["lr"]
+                print("Learning Rates (pose, points):", str(optimiser.param_groups[0]["lr"]), str(optimiser.param_groups[1]["lr"]))
                 S.watch(new_plr, "points_lr")
                 prev_points = points.clone()
 
