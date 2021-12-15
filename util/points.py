@@ -127,6 +127,44 @@ def init_points_spot(num_points=500, device="cpu", deterministic=False) -> Point
     return fpoints
 
 
+def init_points_poisson(num_points=500, device="cpu") -> PointsTen:
+    """
+    Rather than load a torus or fixed shape, create a
+    tensor that contains a random number of points.
+    We use a poisson distribution. A bit slow but might be alright
+
+    Parameters
+    ----------
+    num_points : int
+        The number of points to make (default 500).
+    device : str
+        The device that holds the points (cuda / cpu).
+        Default - cpu.
+    deterministic : bool
+        Are we going for a deterministic run?
+        Default - False.
+
+    Returns
+    -------
+    PointsTen
+        Our Points in PointsTen form.
+    """
+    from poisson import PoissonSampler
+    points = Points()
+    sampler = PoissonSampler(num_points * 10)
+    samples = sampler.sample(num_points)
+
+    # Everything is roughly centred in the images so spawn
+    # the points close to the centre
+    for i in range(0, num_points):
+        x, y, z = samples[i]
+        p = Point(x, y, z, 1.0)
+        points.append(p)
+
+    fpoints = PointsTen(device=device)
+    fpoints.from_points(points)
+    return fpoints
+
 
 def save_points(filename, points: Points):
     """

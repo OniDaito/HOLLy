@@ -93,6 +93,9 @@ class Point:
     def __str__(self):
         return str(self.x) + ", " + str(self.y) + ", " + str(self.z) + ", " + str(self.w)
 
+    def dist(self, q) -> float:
+        return math.sqrt((self.x - q.x)**2 + (self.y - q.y)**2 + (self.z - q.z)**2)
+
 
 class Points:
     """A collection of points in a list. Mostly used

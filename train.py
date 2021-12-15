@@ -24,7 +24,7 @@ import random
 import argparse
 import os
 import sys
-from util.points import load_points, save_points, init_points, init_points_spot
+from util.points import init_points_poisson, load_points, save_points, init_points, init_points_spot
 from util.loadsave import save_checkpoint, save_model
 from data.loader import Loader
 from data.imageload import ImageLoader
@@ -659,6 +659,10 @@ def init(args, device):
         points = init_points_spot(
             args.num_points, device=device, deterministic=args.deterministic
         )
+    elif args.poisson:
+        points = init_points_poisson(
+            args.num_points, device=device
+        )
 
     model = Net(
         splat_out,
@@ -815,6 +819,13 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--ipspot",
+        action="store_true",
+        default=False,
+        help="Initialise points across space with a gaussian and a spot in the middle.\
+                        (default: false)",
+    )
+    parser.add_argument(
+        "--poisson",
         action="store_true",
         default=False,
         help="Initialise points across space with a gaussian and a spot in the middle.\
