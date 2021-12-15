@@ -174,9 +174,9 @@ class Net(nn.Module):
         ]
 
         # Specific weight and bias initialisation
-        for layer in self.layers:
-            torch.nn.init.xavier_uniform_(layer.weight)
-            layer.bias.data.fill_(random.random() * 0.001)
+        #for layer in self.layers:
+        #    torch.nn.init.xavier_uniform_(layer.weight)
+        #    layer.bias.data.fill_(random.random() * 0.001)
 
     def __iter__(self):
         return iter(self.layers)
