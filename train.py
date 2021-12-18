@@ -375,7 +375,7 @@ def train(
     model.train()
     # Set a lower limit on the lr, with a lower one on the plr. Factor is less harsh.
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimiser, mode="min", patience=10, factor=args.reduction, min_lr=[args.lr / 10, args.plr / 100]
+        optimiser, mode="min", patience=200, factor=args.reduction, min_lr=[args.lr / 10, args.plr / 100]
     )
 
     # Which normalisation are we using?
@@ -468,7 +468,9 @@ def train(
                 # Now attempt to see if we have a good model
                 # Calculate the move loss and adjust the learning rate on the points accordingly
                 # We need a window of at least 10 steps at log interval 100.
-                scheduler.step(calculate_move_loss(prev_points, points))
+                move_loss = calculate_move_loss(prev_points, points) 
+                scheduler.step(move_loss)
+                S.watch(move_loss, "move_loss")
                 new_plr = optimiser.param_groups[1]["lr"]
                 print("Learning Rates (pose, points):", str(optimiser.param_groups[0]["lr"]), str(optimiser.param_groups[1]["lr"]))
                 S.watch(new_plr, "points_lr")
