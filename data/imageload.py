@@ -13,6 +13,7 @@ import os
 from astropy.io import fits
 import array
 import torch
+import pickle
 from tqdm import tqdm
 from data.loader import Loader, LoaderItem, ItemType
 
