@@ -149,7 +149,7 @@ def init_points_poisson(num_points=500, device="cpu") -> PointsTen:
     PointsTen
         Our Points in PointsTen form.
     """
-    from poisson import PoissonSampler
+    from util.poisson import PoissonSampler
     points = Points()
     sampler = PoissonSampler(num_points * 10)
     samples = sampler.sample(num_points)
