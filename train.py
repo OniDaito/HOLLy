@@ -173,7 +173,7 @@ def test(
     rots_out = []  # Collect all rotations out
     test_loss = 0
 
-    if args.objpath != "":
+    if args.objpath != "" and args.save_stats:
         # Assume we are simulating so we have rots to save
         S.watch(rots_in, "rotations_in_test")
         S.watch(rots_out, "rotations_out_test")
@@ -443,8 +443,9 @@ def train(
                     S.watch(sigma, "sigma_in")
 
                 # Watch the training rotations too!
-                S.watch(ddata[1], "rotations_in_train")
-                S.watch(model.get_rots(), "rotations_out_train")
+                if args.objpath != "" and args.save_stats:
+                    S.watch(ddata[1], "rotations_in_train")
+                    S.watch(model.get_rots(), "rotations_out_train")
 
                 print(
                     "Train Epoch: \
