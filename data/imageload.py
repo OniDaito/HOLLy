@@ -180,3 +180,58 @@ class ImageLoader(Loader):
 
     def __getitem__(self, idx) -> LoaderItem:
         return ItemImage(self.filenames[idx])
+
+    def load(self, filename: str):
+        """
+        Load the data from a file instead of randomly creating them.
+
+        Parameters
+        ----------
+        filename : str
+           The path to the filename in question.
+
+        Returns
+        -------
+        self
+        """
+        # Clear out first
+
+        if os.path.isfile(filename):
+            with open(filename, "rb") as f:
+                (
+                    self.size,
+                    self.base_image_path,
+                    self.deterministic,
+                    self.sigma,
+                ) = pickle.load(f)
+
+        self.available = [i for i in range(0, self.size)]
+        return self
+
+    def save(self, filename):
+        """
+        Save the current loader to a file on disk. The file
+        is saved using Python's pickle format.
+
+        Parameters
+        ----------
+        filename : str
+            The full path and filename to save to.
+
+        Returns
+        -------
+        self
+        """
+
+        with open(filename, "wb") as f:
+            pickle.dump(
+                (
+                    self.size,
+                    self.base_image_path,
+                    self.deterministic,
+                    self.sigma,
+                ),
+                f,
+                pickle.HIGHEST_PROTOCOL,
+            )
+        return self
