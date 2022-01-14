@@ -113,32 +113,32 @@ class Net(nn.Module):
         self.conv1 = nn.Conv2d(1, 16, 5, stride=2, padding=2)
         csize = conv_size(splat.size[0], padding=2, stride=2)
 
-        self.conv2 = nn.Conv2d(16, 32, 3, stride=2, padding=1)
-        csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
-
-        self.conv2b = nn.Conv2d(32, 32, 3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(16, 32, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
-        self.conv3 = nn.Conv2d(32, 64, 3, stride=2, padding=1)
-        csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
+        self.conv2b = nn.Conv2d(32, 32, 2, stride=2, padding=1)
+        csize = conv_size(csize, padding=1, stride=2, kernel_size=2)
 
-        self.conv3b = nn.Conv2d(64, 64, 3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(32, 64, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
-        self.conv4 = nn.Conv2d(64, 128, 3, stride=2, padding=1)
-        csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
+        self.conv3b = nn.Conv2d(64, 64, 2, stride=2, padding=1)
+        csize = conv_size(csize, padding=1, stride=2, kernel_size=2)
 
-        self.conv4b = nn.Conv2d(128, 128, 3, stride=1, padding=1)
+        self.conv4 = nn.Conv2d(64, 128, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
-        self.conv5 = nn.Conv2d(128, 256, 3, stride=2, padding=1)
-        csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
+        self.conv4b = nn.Conv2d(128, 128, 2, stride=2, padding=1)
+        csize = conv_size(csize, padding=1, stride=2, kernel_size=2)
 
-        self.conv5b = nn.Conv2d(256, 256, 3, stride=1, padding=1)
+        self.conv5 = nn.Conv2d(128, 256, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
-        self.conv6 = nn.Conv2d(256, 256, 3, stride=2, padding=1)
-        csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
+        self.conv5b = nn.Conv2d(256, 256, 2, stride=2, padding=1)
+        csize = conv_size(csize, padding=1, stride=2, kernel_size=2)
+
+        self.conv6 = nn.Conv2d(256, 256, 3, stride=1, padding=1)
+        csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
         
         # Fully connected layers
         #self.fc1 = nn.Linear(1024, 512)
