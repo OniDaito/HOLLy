@@ -41,10 +41,6 @@ base=''
 groundtruth=''
 while test $# -gt 0; do
     case "$1" in
-      -n|--normalise)
-        extras+=' --normalise-basic'
-        shift
-        ;;
       -a|--animate)
         animate=true
         shift
@@ -133,7 +129,7 @@ else
 fi
 
 # Mesh score won't be installed on other systems so lets comment out for now
-#mesh_score -b $groundtruth -t $base/eval_out.ply > $base/mesh_score.txt 
+../../mesh_score/build/mesh_score -b $groundtruth -t $base/eval_out.ply > $base/mesh_score.txt 
 
 # Export the redis data to a set of CSVs which we will then add to a zip
 # but only if they don't already exist

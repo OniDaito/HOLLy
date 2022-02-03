@@ -16,7 +16,7 @@ from net.renderer import Splat
 from util.math import VecRotTen, TransTen, PointsTen
 
 
-def conv_size(x, padding=0, kernel_size=5, stride=1) -> int:
+def conv_size(shape, padding=0, kernel_size=5, stride=1) -> int:
     """
     Return the size of the convolution layer given a set of parameters
 
@@ -35,8 +35,9 @@ def conv_size(x, padding=0, kernel_size=5, stride=1) -> int:
         The conv stride - default 1
 
     """
-    return int((x - kernel_size + 2 * padding) / stride + 1)
-
+    x = int((shape[1] - kernel_size + 2 * padding) / stride + 1)
+    y = int((shape[0] - kernel_size + 2 * padding) / stride + 1)
+    return (y, x)
 
 def num_flat_features(x):
     """
@@ -61,13 +62,24 @@ def num_flat_features(x):
     return num_features
 
 
+class Flatten(nn.Module):
+    """
+    An nn module that flattens input so it can be passed to the 
+    fully connected layers.
+
+    """
+    def forward(self, x):
+        return x.view(x.size()[0], -1)
+        #return x.view(-1, num_flat_features(x))
+
+
 class Net(nn.Module):
     """The defininition of our convolutional net that reads our images
     and spits out some angles and attempts to figure out the loss
     between the output and the original simulated image.
     """
 
-    def __init__(self, splat: Splat, predict_translate=False, predict_sigma=False, max_trans=0.1):
+    def __init__(self, splat: Splat, max_trans=0.1):
         """
         Initialise the model.
 
@@ -75,10 +87,6 @@ class Net(nn.Module):
         ----------
         splat : Splat
             The renderer splat.
-        predict_translate : bool
-            Do we predict the translation (default: False).
-        predict_sigma : bool
-            Do we predict the sigma as well (default: False).
         max_trans : float
             The scalar attached to the translation (default: 0.1).
 
@@ -101,17 +109,11 @@ class Net(nn.Module):
         self.batch5b = nn.BatchNorm2d(256)
         self.batch6 = nn.BatchNorm2d(256)
 
-        # Model the sigma
-        self.predict_sigma = predict_sigma
-
-        # Model translation
-        self.predict_translate = predict_translate
-
         # Added more conf layers as we aren't using maxpooling
         # TODO - we only have one pseudo-maxpool at the end
         # TODO - do we fancy some drop-out afterall?
         self.conv1 = nn.Conv2d(1, 16, 5, stride=2, padding=2)
-        csize = conv_size(splat.size[0], padding=2, stride=2)
+        csize = conv_size(splat.size, padding=2, stride=2)
 
         self.conv2 = nn.Conv2d(16, 32, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
@@ -141,22 +143,53 @@ class Net(nn.Module):
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
         
         # Fully connected layers
-        #self.fc1 = nn.Linear(1024, 512)
-        self.fc1 = nn.Linear(csize * csize * 256, 512)
-        nx = 3
-
-        if self.predict_translate:
-            nx += 2
-        if self.predict_sigma:
-            nx += 1
-
-        self.fc2 = nn.Linear(512, nx)
+        last_filter_size = 256
+        self.fc1 = nn.Linear(csize[0] * csize[1] * last_filter_size, 512)
+        num_params = 6
+        self.fc2 = nn.Linear(512, num_params)
 
         self.max_shift = max_trans
         self.splat = splat
         self.device = self.splat.device
         self._lidx = 0
         self._mask = torch.zeros(splat.size, dtype=torch.float32)
+
+        self.seq = nn.Sequential(
+            self.conv1,
+            self.batch1,
+            nn.LeakyReLU(),
+            self.conv2,
+            self.batch2,
+            nn.LeakyReLU(),
+            self.conv2b,
+            self.batch2b,
+            nn.LeakyReLU(),
+            self.conv3,
+            self.batch3,
+            nn.LeakyReLU(),
+            self.conv3b,
+            self.batch3b,
+            nn.LeakyReLU(),
+            self.conv4,
+            self.batch4,
+            nn.LeakyReLU(),
+            self.conv4b,
+            self.batch4b,
+            nn.LeakyReLU(),
+            self.conv5,
+            self.batch5,
+            nn.LeakyReLU(),
+            self.conv5b,
+            self.batch5b,
+            nn.LeakyReLU(),
+            self.conv6,
+            self.batch6,
+            nn.LeakyReLU(),
+            Flatten(),
+            self.fc1,
+            nn.LeakyReLU(),
+            self.fc2
+        )
 
         self.layers = [
             self.conv1,
@@ -198,28 +231,10 @@ class Net(nn.Module):
     def set_splat(self, splat: Splat):
         self.splat = splat
 
-    def set_sigma(self, sigma: float):
-        """
-        Set the total sigma we are rendering. Our network will
-        predict a bit more based on the wobble.
-
-        Parameters
-        ----------
-        sigma : float
-            The sigma value used by the renderer
-
-        Returns
-        -------
-        None
-
-        """
-
-        self.sigma = sigma
-
     def get_rots(self):
         return self._final
 
-    def forward(self, target: torch.Tensor, points: PointsTen):
+    def forward(self, source: torch.Tensor, points: PointsTen):
         """
         Our forward pass. We take the input image (x), the
         vector of points (x,y,z,w) and run it through the model. Offsets
@@ -229,8 +244,8 @@ class Net(nn.Module):
 
         Parameters
         ----------
-        target : torch.Tensor
-            The target image, as a tensor.
+        source : torch.Tensor
+            The source image, as a tensor.
         points : PointsTen
             The points we are predicting.
 
@@ -239,59 +254,16 @@ class Net(nn.Module):
         None
 
         """
-        x = F.leaky_relu(self.batch1(self.conv1(target)))
-
-        x = F.leaky_relu(self.batch2(self.conv2(x)))
-        x = F.leaky_relu(self.batch2b(self.conv2b(x)))
-
-        x = F.leaky_relu(self.batch3(self.conv3(x)))
-        x = F.leaky_relu(self.batch3b(self.conv3b(x)))
-
-        x = F.leaky_relu(self.batch4(self.conv4(x)))
-        x = F.leaky_relu(self.batch4b(self.conv4b(x)))
-
-        x = F.leaky_relu(self.batch5(self.conv5(x)))
-        x = F.leaky_relu(self.batch5b(self.conv5b(x)))
-
-        x = F.leaky_relu(self.batch6(self.conv6(x)))
-        x = x.view(-1, num_flat_features(x))
-
-        x = F.leaky_relu(self.fc1(x))
-        self._final = self.fc2(x)  # Save this layer for later use
-
-        # Check that self._mask is not none
-        # TODO - also check that it is the correct shape (actually is
-        # recreation faster than the if check?)
-        # if self._mask is None:
+        self._final = self.seq(source)
         self._mask = points.data.new_full([points.data.shape[0], 1, 1], fill_value=1.0)
-
-        # Now take the rotations here and splat them through our last
-        # process
-        # TODO - this process is the same in dataloader so we should
-        # probably share the code better
         images = []
 
-        for idx, rot in enumerate(self._final):
-            tx = torch.tensor([0.0], dtype=torch.float32, device=self.device)
-            ty = torch.tensor([0.0], dtype=torch.float32, device=self.device)
-            nx = 2
-
-            if self.predict_translate:
-                tx = (torch.tanh(rot[nx + 1]) * 2.0) * self.max_shift
-                ty = (torch.tanh(rot[nx + 2]) * 2.0) * self.max_shift
-                nx += 2
-
+        for param in self._final:
+            tx = (torch.tanh(param[3]) * 2.0) * self.max_shift
+            ty = (torch.tanh(param[4]) * 2.0) * self.max_shift
             sp = nn.Softplus(threshold=12)
-            final_sigma = self.sigma
-
-            if self.predict_sigma:
-                nx += 1
-                final_sigma = torch.clamp(sp(rot[nx]), max=14)
-            else:
-                final_sigma = self.sigma
-            # exp(tanh(s) * log(3))
-
-            r = VecRotTen(rot[0], rot[1], rot[2])
+            final_sigma = torch.clamp(sp(param[5]), max=14)
+            r = VecRotTen(param[0], param[1], param[2])
             t = TransTen(tx, ty)
 
             images.append(

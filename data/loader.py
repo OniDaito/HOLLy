@@ -5,14 +5,13 @@
 /_/ \___/_/   /___/\___/___/___/_/|_/\___/___/      # noqa
 Author : Benjamin Blundell - k1803390@kcl.ac.uk
 
-loader.py -The Dataloader is responsible for generating data
+loader.py - The Dataloader is responsible for generating data
 for the DataSet and DataBuffer classes. It either generates on demand
 or reads images from the disk. It isn't used directly, rather it works
 as follows:
-
-DataBuffer -> DataSet  |
-DataBuffer -> DataSet  | -> DataLoader / CepLoader
-DataBuffer -> DataSet  |
+                          | DataBuffer -> DataSet
+DataLoader / CepLoader -> | DataBuffer -> DataSet
+                          | DataBuffer -> DataSet
 
 DataLoader provides all the data for as many DataSets and their associated
 buffers as one would want. It performs no further processing such as conversion
@@ -42,11 +41,10 @@ class LoaderItem:
 
     def unpack(self):
         assert False
-        return []
 
 
 class ItemSimulated(LoaderItem):
-    """ The Simulated items returned by the basic loader."""
+    """The Simulated items returned by the basic loader."""
 
     def __init__(
         self, points: Points, mask: Mask, angle_axis: VecRot, trans: Trans, sigma: float
@@ -112,7 +110,7 @@ class Loader(object):
         max_trans=0.1,
         rotate=True,
         augment=False,
-        num_augment=10
+        num_augment=10,
     ):
         """
         Create our Loader.
@@ -297,8 +295,7 @@ class Loader(object):
             tv.append(self.transform_vars[ts])
 
         item = ItemSimulated(
-            points, mask, VecRot(tv[0], tv[1], tv[2]), Trans(
-                tv[3], tv[4]), self.sigma
+            points, mask, VecRot(tv[0], tv[1], tv[2]), Trans(tv[3], tv[4]), self.sigma
         )
         return item
 
@@ -377,15 +374,17 @@ class Loader(object):
                 for j in range(self.num_augment):
                     rot_a = VecRot(0, 0, math.pi * 2.0 * random.random())
 
-                    q0 = Quaternion(axis=rot.get_normalised(),
-                                     radians=rot.get_length())
-                    q1 = Quaternion(axis=rot_a.get_normalised(),
-                                     radians=rot_a.get_length())
+                    q0 = Quaternion(axis=rot.get_normalised(), radians=rot.get_length())
+                    q1 = Quaternion(
+                        axis=rot_a.get_normalised(), radians=rot_a.get_length()
+                    )
                     q2 = q1 * q0
-                    rot_f = VecRot(q2.axis[0] * q2.radians,
-                                   q2.axis[1] * q2.radians,
-                                   q2.axis[2] * q2.radians)
-    
+                    rot_f = VecRot(
+                        q2.axis[0] * q2.radians,
+                        q2.axis[1] * q2.radians,
+                        q2.axis[2] * q2.radians,
+                    )
+
                     self.transform_vars.append(rot_f.x)
                     self.transform_vars.append(rot_f.y)
                     self.transform_vars.append(rot_f.z)
@@ -459,7 +458,7 @@ class Loader(object):
                     self.wobble,
                     self.spawn,
                     self.rotate,
-                    self._max_spawn
+                    self._max_spawn,
                 ) = pickle.load(f)
 
         self.available = [i for i in range(0, self.size)]
@@ -496,7 +495,7 @@ class Loader(object):
                     self.wobble,
                     self.spawn,
                     self.rotate,
-                    self._max_spawn
+                    self._max_spawn,
                 ),
                 f,
                 pickle.HIGHEST_PROTOCOL,

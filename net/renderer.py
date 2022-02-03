@@ -90,15 +90,29 @@ class Splat(object):
         These are support matrices needed by pytorch in order
         to convert out points to 2D ones all in the same
         final tensor."""
-        numbers = list(range(0, self.size[0]))
-        square = [numbers for x in numbers]
-        cube = []
+
+        # X indices
+        numbers = list(range(0, self.size[1]))
+        rectangle = [numbers for x in range(0, self.size[0])]
+        cuboid = []
 
         for i in range(0, points.data.shape[0]):
-            cube.append(square)
+            cuboid.append(rectangle)
 
-        self.xs = points.data.new_tensor(cube)
-        self.ys = self.xs.permute([0, 2, 1])
+        self.xs = points.data.new_tensor(cuboid)
+
+        # Y indices
+        rectangle = []
+        cuboid = []
+
+        for i in range(0, self.size[0]):
+            numbers = [i for x in range(self.size[1])]
+            rectangle.append(numbers)
+
+        for i in range(0, points.data.shape[0]):
+            cuboid.append(rectangle)
+
+        self.ys = torch.tensor(cuboid, device=self.device)
 
     def transform_points(
         self, points: torch.Tensor, a: VecRotTen, t: TransTen
@@ -201,14 +215,14 @@ class Splat(object):
         self.rot_mat = gen_mat_from_rod(rot)
         self.trans_mat = gen_trans_xy(trans.x, trans.y)
         self.modelview = torch.matmul(
-            torch.matmul(self.scale_mat, self.rot_mat), self.trans_mat
+            torch.matmul(self.scale_mat, self.trans_mat), self.rot_mat
         )
         o = torch.matmul(self.modelview, points.data)
         s = torch.matmul(self.ndc, o)
         px = s.narrow(1, 0, 1)
         py = s.narrow(1, 1, 1)
-        ex = px.expand(points.data.shape[0], self.xs.shape[1], self.xs.shape[2])
-        ey = py.expand(points.data.shape[0], self.ys.shape[1], self.ys.shape[2])
+        ex = px.expand(points.data.shape[0], self.size[0], self.size[1])
+        ey = py.expand(points.data.shape[0], self.size[0], self.size[1])
 
         # Expand the mask out so we can cancel out the contribution
         # of some of the points

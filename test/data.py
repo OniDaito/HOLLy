@@ -33,7 +33,7 @@ class Data(unittest.TestCase):
         splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
 
         with torch.no_grad():
-            d = Loader(size=100, objpath="./objs/teapot.obj",
+            d = Loader(size=100, objpath="./objs/teapot_large.obj",
                        wobble=0.0, max_spawn=1)
 
             d.set_sigma(sigma=4.0)
@@ -101,9 +101,9 @@ class Data(unittest.TestCase):
         """ Test our buffer class that sits above the set."""
 
         splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
-        loader = Loader(size=200, objpath="./objs/teapot.obj")
+        loader = Loader(size=200, objpath="./objs/teapot_large.obj")
 
-        loader2 = Loader(size=200, objpath="./objs/teapot.obj")
+        loader2 = Loader(size=200, objpath="./objs/teapot_large.obj")
 
         device = torch.device("cpu")
 
@@ -381,13 +381,12 @@ class Data(unittest.TestCase):
         buffer = BufferImage(dataset, buffer_size=10, device="cpu")
         batcher = Batcher(buffer, batch_size=2)
 
-        for i, b in enumerate(batcher):
-            self.assertTrue(len(b) == 1)
-            self.assertTrue(len(b[0]) == 2)
+        for b in batcher:
+            self.assertTrue(len(b.data) == 2)
 
         buffer.fill()
-        (out,) = buffer[0]
-        self.assertTrue(out.shape[0] == 128)
+        out = buffer[0]
+        self.assertTrue(out.datum.shape[0] == 128)
 
     def test_dropout(self):
         """Perform a series of tests on our DataLoader class. Eventually, we shall
@@ -418,7 +417,7 @@ class Data(unittest.TestCase):
         dataset_test = DataSet(SetType.TEST, 100, loader, deterministic=True)
         buffer = Buffer(dataset, splat, buffer_size=100, device="cpu")
         batcher = Batcher(buffer)
-        target = batcher.__next__()[0]
+        target = batcher.__next__().data[0]
 
         loader.save("test_loader.pickle")
         dataset.save("test_dataset_train.pickle")
@@ -430,7 +429,7 @@ class Data(unittest.TestCase):
         dataset2.load("test_dataset_train.pickle")
         buffer2 = Buffer(dataset2, splat, buffer_size=100, device="cpu")
         batcher2 = Batcher(buffer2)
-        target2 = batcher2.__next__()[0]
+        target2 = batcher2.__next__().data[0]
 
         self.assertTrue(torch.equal(target, target2))
 

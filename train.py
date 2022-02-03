@@ -15,8 +15,6 @@ various options.
 """
 
 import torch
-import torch.nn.functional as F
-import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import math
@@ -30,480 +28,11 @@ from data.loader import Loader
 from data.imageload import ImageLoader
 from data.sets import DataSet, SetType
 from data.buffer import Buffer, BufferImage
-from data.batcher import Batcher
 from stats import stats as S
 from net.renderer import Splat
 from net.net import Net
-from util.image import NormaliseNull, NormaliseTorch
 from util.math import PointsTen
-from icp_test import rmsd_score
-
-
-def calculate_loss_alt(target: torch.Tensor, output: torch.Tensor):
-    """
-    Our loss function, used in train and test functions.
-
-    Parameters
-    ----------
-
-    target : torch.Tensor
-        The target, properly shaped.
-
-    output : torch.Tensor
-        The tensor predicted by the network, not shaped
-
-    Returns
-    -------
-    Loss
-        A loss object
-    """
-
-    loss = F.l1_loss(output, target, reduction="mean")
-    return loss
-
-
-def calculate_loss(target: torch.Tensor, output: torch.Tensor):
-    """
-    Our loss function, used in train and test functions.
-
-    Parameters
-    ----------
-
-    target : torch.Tensor
-        The target, properly shaped.
-
-    output : torch.Tensor
-        The tensor predicted by the network, not shaped
-
-    Returns
-    -------
-    Loss
-        A loss object
-    """
-    loss = F.l1_loss(output, target, reduction="sum")
-    return loss
-
-
-def calculate_move_loss(prev_points: PointsTen, new_points: PointsTen):
-    """
-    How correlated is our movement from one step to the next? Use
-    ICP and Nearest Neighbour RMSD
-
-    Parameters
-    ----------
-
-    prev_points : PointsTen
-        The starting points
-
-    new_points : PointsTen
-        The points as updated by the network
-
-    Returns
-    -------
-    Loss : float
-        The loss score
-    """
-    p0 = prev_points.get_points()
-    pv0 = []
-    for p in p0.data:
-        pv0.append((p.x, p.y, p.z))
-
-    p1 = new_points.get_points()
-    pv1 = []
-    for p in p1.data:
-        pv1.append((p.x, p.y, p.z))
-
-    loss = rmsd_score(pv0, pv1)
-    return loss
-
-
-def test(
-    args,
-    model,
-    buffer_test: Buffer,
-    epoch: int,
-    step: int,
-    points: PointsTen,
-    sigma: float,
-    write_fits=False,
-):
-    """
-    Switch to test / eval mode and do some recording to our stats
-    program and see how we go.
-
-    Parameters
-    ----------
-    args : dict
-        The arguments object created in the __main__ function.
-    model : torch.nn.Module
-        The main net model
-    buffer_test : Buffer
-        The buffer that represents our test data.
-    epoch : int
-        The current epoch.
-    step : int
-        The current step.
-    points : PointsTen
-        The current PointsTen being trained.
-    sigma : float
-        The current sigma.
-    write_fits : bool
-        Write the intermediate fits files for analysis.
-        Takes up a lot more space. Default - False.
-    Returns
-    -------
-    None
-    """
-
-    # Put model in eval mode
-    model.eval()
-
-    # Which normalisation are we using?
-    normaliser = NormaliseNull()
-
-    if args.normalise_basic:
-        normaliser = NormaliseTorch()
-        if args.altloss:
-            normaliser.factor = 1000.0
-
-    image_choice = random.randrange(0, args.batch_size)
-    # We'd like a batch rather than a similar issue.
-    batcher = Batcher(buffer_test, batch_size=args.batch_size)
-    rots_in = []  # Save rots in for stats
-    rots_out = []  # Collect all rotations out
-    test_loss = 0
-
-    if args.objpath != "" and args.save_stats:
-        # Assume we are simulating so we have rots to save
-        S.watch(rots_in, "rotations_in_test")
-        S.watch(rots_out, "rotations_out_test")
-
-    for batch_idx, ddata in enumerate(batcher):
-        # turn off grads because for some reason, memory goes BOOM!
-        with torch.no_grad():
-            # Offsets is essentially empty for the test buffer.
-            target = ddata[0]
-            target_shaped = normaliser.normalise(
-                target.reshape(args.batch_size, 1, args.image_size, args.image_size)
-            )
-
-            output = normaliser.normalise(model(target_shaped, points))
-            output = output.reshape(
-                args.batch_size, 1, args.image_size, args.image_size
-            )
-
-            rots_out.append(model.get_rots())
-            if args.altloss:
-                test_loss += calculate_loss_alt(target_shaped, output).item()
-            else:
-                test_loss += calculate_loss(target_shaped, output).item()
-
-            # Just save one image for now - first in the batch
-            if batch_idx == image_choice:
-                target = torch.squeeze(target_shaped[0])
-                output = torch.squeeze(output[0])
-                S.save_jpg(target, args.savedir, "in_e", epoch, step, batch_idx)
-                S.save_jpg(output, args.savedir, "out_e", epoch, step, batch_idx)
-                S.save_fits(target, args.savedir, "in_e", epoch, step, batch_idx)
-                S.save_fits(output, args.savedir, "out_e", epoch, step, batch_idx)
-
-                if write_fits:
-                    S.write_immediate(target, "target_image", epoch, step, batch_idx)
-                    S.write_immediate(output, "output_image", epoch, step, batch_idx)
-
-                if args.predict_sigma:
-                    ps = model._final.shape[1] - 1
-                    sp = nn.Softplus(threshold=12)
-                    sig_out = torch.tensor(
-                        [torch.clamp(sp(x[ps]), max=14) for x in model._final]
-                    )
-                    S.watch(sig_out, "sigma_out_test")
-
-            # soft_plus = torch.nn.Softplus()
-            if args.objpath != "":
-                # Assume we are simulating so we have rots to save
-                rots_in.append(ddata[1])
-
-    test_loss /= len(batcher)
-    S.watch(test_loss, "loss_test")  # loss saved for the last batch only.
-    buffer_test.set.shuffle()
-    model.train()
-
-
-def cont_sigma(
-    args, current_epoch: int, batch_idx: int, batches_epoch: int, sigma_lookup: list
-) -> float:
-    """
-    If we are using _cont_sigma, we need to work out the linear
-    relationship between the points. We call this each step.
-
-    Parameters
-    ----------
-    args : dict
-        The arguments object created in the __main__ function.
-    current_epoch : int
-        The current epoch.
-    batch_idx : int
-        The current batch number
-    batches_epoch : int
-        The number of batches per epoch
-    sigma_lookup : list
-        The sigma lookup list of floats.
-
-    Returns
-    -------
-    float
-        The sigma to use
-    """
-    progress = float(current_epoch * batches_epoch + batch_idx) / float(
-        args.epochs * batches_epoch
-    )
-    middle = (len(sigma_lookup) - 1) * progress
-    start = int(math.floor(middle))
-    end = int(math.ceil(middle))
-    between = middle - start
-    s_sigma = sigma_lookup[start]
-    e_sigma = sigma_lookup[end]
-    new_sigma = s_sigma + ((e_sigma - s_sigma) * between)
-
-    return new_sigma
-
-
-def validate(
-    args,
-    model,
-    buffer_valid: Buffer,
-    points: PointsTen,
-):
-    """
-    Switch to test / eval mode and run a validation step.
-
-    Parameters
-    ----------
-    args : dict
-        The arguments object created in the __main__ function.
-    model : torch.nn.Module
-        The main net model
-    buffer_valid: Buffer
-        The buffer that represents our validation data.
-    points : PointsTen
-        The current PointsTen being trained.
-    sigma : float
-        The current sigma.
-
-    Returns
-    -------
-    Loss
-        A float representing the validation loss
-    """
-    # Put model in eval mode
-    model.eval()
-
-    # Which normalisation are we using?
-    normaliser = NormaliseNull()
-
-    if args.normalise_basic:
-        normaliser = NormaliseTorch()
-        if args.altloss:
-            normaliser.factor = 1000.0
-
-    # We'd like a batch rather than a similar issue.
-    batcher = Batcher(buffer_valid, batch_size=args.batch_size)
-    ddata = batcher.__next__()
-
-    with torch.no_grad():
-        # Offsets is essentially empty for the test buffer.
-        target = ddata[0]
-        target_shaped = normaliser.normalise(
-            target.reshape(args.batch_size, 1, args.image_size, args.image_size)
-        )
-
-        output = normaliser.normalise(model(target_shaped, points))
-        output = output.reshape(args.batch_size, 1, args.image_size, args.image_size)
-
-        valid_loss = 0
-        if args.altloss:
-            valid_loss = calculate_loss_alt(target_shaped, output).item()
-        else:
-            valid_loss = calculate_loss(target_shaped, output).item()
-
-    buffer_valid.set.shuffle()
-    model.train()
-    return valid_loss
-
-
-def train(
-    args,
-    device,
-    sigma_lookup,
-    model,
-    points,
-    buffer_train,
-    buffer_test,
-    buffer_validate,
-    data_loader,
-    optimiser,
-):
-    """
-    Now we've had some setup, lets do the actual training.
-
-    Parameters
-    ----------
-    args : dict
-        The arguments object created in the __main__ function.
-    device : str
-        The device to run the model on (cuda / cpu)
-    sigma_lookup : list
-        The list of float values for the sigma value.
-    model : nn.Module
-        Our network we want to train.
-    points : PointsTen
-        The points we want to sort out.
-    buffer_train :  Buffer
-        The buffer in front of our training data.
-    data_loader : Loader
-        A data loader (image or simulated).
-    optimiser : torch.optim.Optimizer
-        The optimiser we want to use.
-    optimiser_points : torch.optim.Optimizer
-        The optimiser for the points
-    Returns
-    -------
-    None
-    """
-
-    model.train()
-    # Set a lower limit on the lr, with a lower one on the plr. Factor is less harsh.
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimiser, mode="min", patience=int(args.epochs / 2), factor=args.reduction, min_lr=[args.lr / 10, args.plr / 100]
-    )
-
-    # Which normalisation are we using?
-    normaliser = NormaliseNull()
-
-    if args.normalise_basic:
-        normaliser = NormaliseTorch()
-        if args.altloss:
-            normaliser.factor = 1000.0
-
-    sigma = sigma_lookup[0]
-    S.watch(optimiser.param_groups[0]["lr"], "learning_rate")
-
-    # We'd like a batch rather than a similar issue.
-    batcher = Batcher(buffer_train, batch_size=args.batch_size)
-
-    # Keep a copy of the points so we can test for a good structure
-    prev_points = points.clone()
-
-    # Begin the epochs and training
-    for epoch in range(args.epochs):
-        if not args.cont:
-            sigma = sigma_lookup[min(epoch, len(sigma_lookup) - 1)]
-
-        # Set the sigma - two seems too many
-        model.set_sigma(sigma)
-        data_loader.set_sigma(sigma)
-
-        # Now begin proper
-        print("Starting Epoch", epoch)
-        for batch_idx, ddata in enumerate(batcher):
-            target = ddata[0]
-            optimiser.zero_grad()
-
-            # Shape and normalise the input batch
-            target_shaped = normaliser.normalise(
-                target.reshape(args.batch_size, 1, args.image_size, args.image_size)
-            )
-
-            output = normaliser.normalise(model(target_shaped, points))
-            loss = 0
-
-            if args.altloss:
-                loss = calculate_loss_alt(target_shaped, output)
-            else:
-                loss = calculate_loss(target_shaped, output)
-
-            loss.backward()
-            lossy = loss.item()
-            optimiser.step()
-
-            # If we are using continuous sigma, lets update it here
-            if args.cont and not args.no_sigma:
-                sigma = cont_sigma(args, epoch, batch_idx, len(batcher), sigma_lookup)
-                # 2 places again - not ideal :/
-                data_loader.set_sigma(sigma)
-                model.set_sigma(sigma)
-
-            # We save here because we want our first step to be untrained
-            # network
-            if batch_idx % args.log_interval == 0:
-                # Add watches here
-                S.watch(lossy, "loss_train")
-                if args.predict_sigma or args.cont:
-                    S.watch(sigma, "sigma_in")
-
-                # Watch the training rotations too!
-                if args.objpath != "" and args.save_stats:
-                    S.watch(ddata[1], "rotations_in_train")
-                    S.watch(model.get_rots(), "rotations_out_train")
-
-                print(
-                    "Train Epoch: \
-                    {} [{}/{} ({:.0f}%)]\tLoss Main: {:.6f}".format(
-                        epoch,
-                        batch_idx * args.batch_size,
-                        buffer_train.set.size,
-                        100.0 * batch_idx * args.batch_size / buffer_train.set.size,
-                        lossy,
-                    )
-                )
-
-                if args.save_stats:
-                    test(args, model, buffer_test, epoch, batch_idx, points, sigma)
-                    S.save_points(points, args.savedir, epoch, batch_idx)
-                    S.update(epoch, buffer_train.set.size, args.batch_size, batch_idx)
-
-            steps = batch_idx + (epoch * (buffer_train.set.size / args.batch_size))
-
-            if steps % args.pinterval == 0 and args.adapt: 
-                # Now attempt to see if we have a good model
-                # Calculate the move loss and adjust the learning rate on the points accordingly
-                # We need a window of at least 10 steps at log interval 100.
-                move_loss = calculate_move_loss(prev_points, points) 
-                scheduler.step(move_loss)
-                S.watch(move_loss, "move_loss")
-                new_plr = optimiser.param_groups[1]["lr"]
-                print("Learning Rates (pose, points):", str(optimiser.param_groups[0]["lr"]), str(optimiser.param_groups[1]["lr"]))
-                S.watch(new_plr, "points_lr")
-                prev_points = points.clone()
-
-            if batch_idx % args.save_interval == 0:
-                print("saving checkpoint", batch_idx, epoch)
-                save_model(model, args.savedir + "/model.tar")
-
-                save_checkpoint(
-                    model,
-                    points,
-                    optimiser,
-                    epoch,
-                    batch_idx,
-                    loss,
-                    sigma,
-                    args,
-                    args.savedir,
-                    args.savename,
-                )
-
-        buffer_train.set.shuffle()
-
-        # Scheduler update again but on validation set
-        #if args.adapt:
-        #    val_loss = validate(args, model, buffer_validate, points)
-        #    scheduler.step(val_loss)
-
-    # Save a final points file once training is complete
-    S.save_points(points, args.savedir, epoch, batch_idx)
-    return points
+from train.train import train
 
 
 def init(args, device):
@@ -543,22 +72,16 @@ def init(args, device):
 
     # Sigma checks. Do we use a file, do we go continuous etc?
     # Check for sigma blur file
-    sigma_lookup = [None]
 
-    if not args.no_sigma:
-        sigma_lookup = [10.0, 1.25]
-        if len(args.sigma_file) > 0:
-            if os.path.isfile(args.sigma_file):
-                with open(args.sigma_file, "r") as f:
-                    ss = f.read()
-                    sigma_lookup = []
-                    tokens = ss.replace("\n", "").split(",")
-                    for token in tokens:
-                        sigma_lookup.append(float(token))
-
-    if (args.no_sigma and not args.predict_sigma) is True:
-        print("If using no-sigma, you must predict sigma")
-        sys.exit()
+    sigma_lookup = [10.0, 1.25]
+    if len(args.sigma_file) > 0:
+        if os.path.isfile(args.sigma_file):
+            with open(args.sigma_file, "r") as f:
+                ss = f.read()
+                sigma_lookup = []
+                tokens = ss.replace("\n", "").split(",")
+                for token in tokens:
+                    sigma_lookup.append(float(token))
 
     # Setup our splatting pipeline. We use two splats with the same
     # values because one never changes its points / mask so it sits on
@@ -571,7 +94,7 @@ def init(args, device):
         1.0,
         10.0,
         device=device,
-        size=(args.image_size, args.image_size),
+        size=(args.image_height, args.image_width),
     )
     splat_out = Splat(
         math.radians(90),
@@ -579,7 +102,7 @@ def init(args, device):
         1.0,
         10.0,
         device=device,
-        size=(args.image_size, args.image_size),
+        size=(args.image_height, args.image_width),
     )
 
     # Setup the dataloader - either generated from OBJ or fits
@@ -600,19 +123,19 @@ def init(args, device):
             set_train,
             buffer_size=args.buffer_size,
             device=device,
-            image_size=(args.image_size, args.image_size),
+            image_size=(args.image_height, args.image_width),
         )
         buffer_test = BufferImage(
             set_test,
             buffer_size=test_set_size,
-            image_size=(args.image_size, args.image_size),
+            image_size=(args.image_height, args.image_width),
             device=device,
         )
 
         buffer_valid = BufferImage(
             set_validate,
             buffer_size=valid_set_size,
-            image_size=(args.image_size, args.image_size),
+            image_size=(args.image_height, args.image_width),
             device=device,
         )
 
@@ -669,8 +192,6 @@ def init(args, device):
 
     model = Net(
         splat_out,
-        predict_translate=(not args.no_translate),
-        predict_sigma=args.predict_sigma,
         max_trans=args.max_trans,
     ).to(device)
 
@@ -711,9 +232,6 @@ def init(args, device):
         variables.append({"params": points.data, "lr": args.plr})
 
     optimiser = optim.AdamW(variables)
-
-    if args.sgd:
-        optimiser = optim.SGD(variables)
 
     print("Starting new model")
 
@@ -799,12 +317,6 @@ if __name__ == "__main__":
                           graphing.",
     )
     parser.add_argument(
-        "--predict-sigma",
-        action="store_true",
-        default=False,
-        help="Predict the sigma (default: False).",
-    )
-    parser.add_argument(
         "--no-cuda", action="store_true", default=False, help="disables CUDA training"
     )
     parser.add_argument(
@@ -812,13 +324,6 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="Run deterministically",
-    )
-    parser.add_argument(
-        "--no-translate",
-        action="store_true",
-        default=False,
-        help="Turn off translation prediction in the network \
-                        (default: false)",
     )
     parser.add_argument(
         "--ipspot",
@@ -849,13 +354,6 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--seed", type=int, default=1, metavar="S", help="random seed (default: 1)"
-    )
-    parser.add_argument(
-        "--cont",
-        default=False,
-        action="store_true",
-        help="Continuous sigma values",
-        required=False,
     )
     parser.add_argument(
         "--log-interval",
@@ -893,27 +391,6 @@ if __name__ == "__main__":
         required=False,
     )
     parser.add_argument(
-        "--altloss",
-        default=False,
-        action="store_true",
-        help="Use the alternative loss function with the lower loss range (default: False).",
-        required=False,
-    )
-    parser.add_argument(
-        "--sgd",
-        default=False,
-        action="store_true",
-        help="Use SGD instead of Adam (default: False).",
-        required=False,
-    )
-    parser.add_argument(
-        "--no-sigma",
-        default=False,
-        action="store_true",
-        help="Do we use an input sigma profile or do we ignore it?",
-        required=False,
-    )
-    parser.add_argument(
         "--num-aug",
         type=int,
         default=10,
@@ -925,6 +402,20 @@ if __name__ == "__main__":
         action="store_true",
         help="Adaptive learning rate (default: False)",
         required=False,
+    )
+    parser.add_argument(
+        "--image-width",
+        type=int,
+        default=320,
+        help="The width of the input and output images \
+                          (default: 320).",
+    )
+    parser.add_argument(
+        "--image-height",
+        type=int,
+        default=150,
+        help="The height of the input and output images \
+                          (default: 150).",
     )
     parser.add_argument(
         "--save-interval",
@@ -983,13 +474,6 @@ if __name__ == "__main__":
         type=int,
         default=50000,
         help="The size of the training set (default: 50000)",
-    )
-    parser.add_argument(
-        "--image-size",
-        type=int,
-        default=128,
-        help="The size of the images involved, assuming square \
-                          (default: 128).",
     )
     parser.add_argument(
         "--test-size",

@@ -13,3 +13,5 @@ scipy==1.6.2
 typing-extensions==3.7.4.3
 rich==10.1.0
 graphviz==0.16
+prettytable==3.0.0
+pynvml==11.4.1

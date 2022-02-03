@@ -914,14 +914,15 @@ def gen_ndc(size, device="cpu"):
     torch.Tensor
        A 4x4 ndc-to-screen matrix.
     """
-    ds = 1.0
-    sx = 0
+    
+    aspect = size[1] / size[0]
+    sx = (size[1] / 2) - (size[1] / (aspect * 2.0))
     sy = 0
     ms = torch.tensor(
         [
-            [size[0] / 2.0, 0, 0, size[0] / 2.0 + sx],
-            [0, -size[1] / 2.0, 0, size[1] / 2.0 + sy],
-            [0, 0, ds / 2.0, ds / 2.0],
+            [size[1] / (2.0 * aspect), 0, 0, size[1] / (2.0 * aspect) + sx],
+            [0, -size[0] / 2.0, 0, size[0] / 2.0 + sy],
+            [0, 0, 1.0 / 2.0, 1.0 / 2.0],
             [0, 0, 0, 1],
         ],
         dtype=torch.float32,

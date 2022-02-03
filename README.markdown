@@ -113,7 +113,7 @@ We can simulate data from a [wavefront obj file](https://en.wikipedia.org/wiki/W
 
 To train a new network on simulated data, run the following command in the top level of the project, assuming you are inside the miniconda environment:
 
-    python train.py --obj objs/teapot.obj --train-size 80000 --lr 0.0004 --savedir /tmp/runs/test_run --num-points 230 --no-translation --no-data-translate --epochs 20 --sigma-file run/sigma_quick.csv
+    python train.py --obj objs/teapot_large.obj --train-size 40000 --lr 0.0004 --savedir /tmp/test_run --num-points 230 --epochs 20 --sigma-file run/sigma_quick.csv
 
 It is also possible to use the provided bash script to execute training in a given directory, saving the various options and code versions to various files. This is more useful if you want to run many tests, saving the various settings.
 
@@ -125,7 +125,7 @@ The bash script *train.sh* looks for a file called *run.conf* that contains the 
 Using docker, one can run the same command as follows:
 
     mkdir experiment
-    docker run --gpus=all --volume="$PWD:/app" holly python train.py --obj objs/teapot.obj --train-size 80000 --lr 0.0004 --savedir /app/experiment --num-points 230 --no-translate --no-data-translate --epochs 20 --sigma-file run/sigma_quick.csv
+    docker run --gpus=all --volume="$PWD:/app" holly python train.py --obj objs/teapot_large.obj --train-size 40000 --lr 0.0004 --savedir /tmp/experiment --num-points 230 --epochs 20 --sigma-file run/sigma_quick.csv
 
 Confirm that docker can see the gpu:
     docker run --gpus all holly nvidia-smi
@@ -279,20 +279,11 @@ When running train.py, there are a number of options one can choose.
     --save-stats
     Save the stats of the training for later graphing.
 
-    --predict-sigma
-    Predict the sigma (default: False).
-
     --no-cuda
     Disables CUDA training.
 
     --deterministic
     Run deterministically.
-
-    --no-translate",
-    Turn off translation prediction in the network (default: false).
-
-    --no-data-translate
-    Turn off translation in the data loader(default: false).
 
     --normalise-basic
     Normalise with torch basic intensity divide.
@@ -348,8 +339,11 @@ When running train.py, there are a number of options one can choose.
     --train-size
     The size of the training set (default: 50000)
 
-    --image-size
-    The size of the images involved, assuming square (default: 128).
+    --image-height
+    The height of the images involved (default: 128).
+
+    --image-width
+    The width of the images involved (default: 128).
 
     --test-size
     The size of the training set (default: 200)
@@ -360,9 +354,6 @@ When running train.py, there are a number of options one can choose.
     --buffer-size
     How big is the buffer in images?  (default: 40000)
 
-    --no-sigma
-    Assume there is no sigma blurring in the input data.
-    This must be paired with --predict-sigma. (default: False)    
 
 ## Contributing
 
