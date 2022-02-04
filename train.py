@@ -66,10 +66,9 @@ def init(args, device):
     test_set_size = args.test_size
 
     if args.aug:
-        train_set_size = args.train_size * args.num_aug
-        valid_set_size = args.valid_size * args.num_aug
-        test_set_size = args.test_size * args.num_aug
-
+        train_set_size = args.train_size * 4
+        valid_set_size = args.valid_size * 4
+        test_set_size = args.test_size * 4
     # Sigma checks. Do we use a file, do we go continuous etc?
     # Check for sigma blur file
 
@@ -151,7 +150,7 @@ def init(args, device):
             sigma=sigma_lookup[0],
             max_trans=args.max_trans,
             augment=args.aug,
-            num_augment=args.num_aug,
+            num_augment=4,
         )
 
         fsize = min(data_loader.size - test_set_size, train_set_size)
