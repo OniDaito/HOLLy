@@ -99,8 +99,6 @@ def validate(
 
     if args.normalise_basic:
         normaliser = NormaliseTorch()
-        if args.altloss:
-            normaliser.factor = 1000.0
 
     # We'd like a batch rather than a similar issue.
     batcher = Batcher(buffer_valid, batch_size=args.batch_size)
