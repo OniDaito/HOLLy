@@ -89,7 +89,9 @@ class Batcher:
             return batch
 
         except StopIteration:
+            print("Batcher Stop iter")
             raise StopIteration("Batcher reached the end of the dataset.")
 
         except Exception as e:
+            print("Batcher Exception", e)
             raise e

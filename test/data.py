@@ -438,6 +438,7 @@ class Data(unittest.TestCase):
             os.remove("test_dataset_train.pickle")
             os.remove("test_dataset_test.pickle")
         except OSError:
+            print ("OSError")
             pass
 
     def test_losses(self):

@@ -119,6 +119,7 @@ class BaseBuffer(object):
         try:
             return self.buffer[idx]
         except Exception as e:
+            print("Buffer Exception", e)
             raise e
 
     def __iter__(self):
@@ -166,6 +167,7 @@ class BaseBuffer(object):
             self.counter = 0
             raise StopIteration("Reached the end of the dataset.")
         except Exception as e:
+            print ("Base Buffer Exception", e)
             raise e
 
 
@@ -217,9 +219,10 @@ class Buffer(BaseBuffer):
                         points, r, t, mask=mask, sigma=datum.sigma
                     )
 
-                self.buffer.append(ItemRendered(rendered, r, t, datum.sigma))
+                    self.buffer.append(ItemRendered(rendered, r, t, datum.sigma))
 
         except Exception as e:
+            print ("Buffer exception on Fill", e)
             raise e
         return self
 
@@ -306,6 +309,7 @@ class BufferImage(BaseBuffer):
                     self.buffer.append(item)
 
         except Exception as e:
+            print("Buffer exception", e)
             raise e
 
     def image_size(self):
