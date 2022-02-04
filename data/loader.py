@@ -371,8 +371,8 @@ class Loader(object):
 
             if self.augment:
 
-                for j in range(self.num_augment):
-                    rot_a = VecRot(0, 0, math.pi * 2.0 * random.random())
+                for j in range(4):
+                    rot_a = VecRot(0, 0, math.pi / 2.0  * j)
 
                     q0 = Quaternion(axis=rot.get_normalised(), radians=rot.get_length())
                     q1 = Quaternion(
