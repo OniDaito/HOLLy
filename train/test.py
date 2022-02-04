@@ -66,8 +66,6 @@ def test(
 
     if args.normalise_basic:
         normaliser = NormaliseTorch()
-        if args.altloss:
-            normaliser.factor = 1000.0
 
     image_choice = random.randrange(0, args.batch_size)
     # We'd like a batch rather than a similar issue.

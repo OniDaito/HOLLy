@@ -176,8 +176,6 @@ def train(
 
     if args.normalise_basic:
         normaliser = NormaliseTorch()
-        if args.altloss:
-            normaliser.factor = 1000.0
 
     sigma = sigma_lookup[0]
     data_loader.set_sigma(sigma)
