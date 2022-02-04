@@ -180,7 +180,7 @@ class Loader(object):
 
         # Augmentation - essentially a number of 2D affine rotations in XY
         self.augment = augment
-        self.num_augment = num_augment
+        self.num_augment = 4
 
         # Paramaters for generating points
         self.dropout = dropout
@@ -200,7 +200,7 @@ class Loader(object):
 
         # Set here as once we've augmented we need a new size
         if self.augment:
-            self.size = size * num_augment
+            self.size = size * self.num_augment
 
     def reset(self):
         """
