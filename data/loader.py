@@ -370,7 +370,6 @@ class Loader(object):
             points, dropout_mask = self._create_points_mask()
 
             if self.augment:
-
                 for j in range(1, 5):
                     rot_a = VecRot(0, 0, math.pi / 2.0 * j)
                     q0 = Quaternion(axis=rot.get_normalised(), radians=rot.get_length())

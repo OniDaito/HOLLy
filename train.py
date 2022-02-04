@@ -130,7 +130,6 @@ def init(args, device):
             image_size=(args.image_height, args.image_width),
             device=device,
         )
-
         buffer_valid = BufferImage(
             set_validate,
             buffer_size=valid_set_size,
@@ -388,12 +387,6 @@ if __name__ == "__main__":
         action="store_true",
         help="Only optimise the pose. Default false",
         required=False,
-    )
-    parser.add_argument(
-        "--num-aug",
-        type=int,
-        default=10,
-        help="how many augmentations to perform per datum (default 10)",
     )
     parser.add_argument(
         "--adapt",
