@@ -159,8 +159,8 @@ class Data(unittest.TestCase):
         batcher = Batcher(buffer)
 
         for i, b in enumerate(batcher):
-            self.assertTrue(len(b.rotations) == 3)
-            self.assertTrue(len(b.translations) == 2)
+            self.assertTrue(len(b.rotations) == 16)
+            self.assertTrue(len(b.translations) == 16)
 
     def test_normalise(self):
         """ Test the normaliser."""
@@ -172,7 +172,7 @@ class Data(unittest.TestCase):
         normaliser = NormaliseBasic()
 
         for i, b in enumerate(batcher):
-            target = b.datum
+            target = b.data
             self.assertTrue(torch.sum(target[0]) != 100.0)
             normalised = normaliser.normalise(target.reshape(16, 1, 128, 128))
             self.assertTrue(torch.sum(normalised[0]) == 100.0)

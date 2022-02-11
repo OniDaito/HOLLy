@@ -149,7 +149,7 @@ def init(args, device):
             sigma=sigma_lookup[0],
             max_trans=args.max_trans,
             augment=args.aug,
-            num_augment=4,
+            num_augment=args.num_aug,
         )
 
         fsize = min(data_loader.size - test_set_size, train_set_size)
@@ -365,7 +365,6 @@ if __name__ == "__main__":
         "--pinterval",
         type=int,
         default=1000,
-        metavar="N",
         help="how many steps to wait before checking the points learning rate (default: 1000)",
     )
     parser.add_argument(
@@ -380,6 +379,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Do we augment the data with XY rotation (default False)?",
         required=False,
+    )
+    parser.add_argument(
+        "--num-aug",
+        type=int,
+        default=10,
+        help="How many augmentations to perform (default: 10)",
     )
     parser.add_argument(
         "--poseonly",
@@ -460,7 +465,6 @@ if __name__ == "__main__":
         help="Path to the obj for generating data",
         required=False,
     )
-
     parser.add_argument(
         "--train-size",
         type=int,

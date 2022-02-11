@@ -60,7 +60,7 @@ class ItemRendered(BufferItem):
         self.sigma = sigma
 
     def flatten(self):
-        return (self.datum, self.rotation, self.sigma)
+        return (self.datum, self.rotation, self.translation, self.sigma)
 
 
 class BaseBuffer(object):

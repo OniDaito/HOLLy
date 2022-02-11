@@ -180,7 +180,7 @@ class Loader(object):
 
         # Augmentation - essentially a number of 2D affine rotations in XY
         self.augment = augment
-        self.num_augment = 4
+        self.num_augment = num_augment
 
         # Paramaters for generating points
         self.dropout = dropout
@@ -370,8 +370,8 @@ class Loader(object):
             points, dropout_mask = self._create_points_mask()
 
             if self.augment:
-                for j in range(0, 4):
-                    rot_a = VecRot(0, 0, math.pi / 2.0 * (j+1))
+                for j in range(0, self.num_augment):
+                    rot_a = VecRot(0, 0, random.random() * math.pi * 2.0)
                     q0 = Quaternion(axis=rot.get_normalised(), radians=rot.get_length())
                     q1 = Quaternion(
                         axis=rot_a.get_normalised(), radians=rot_a.get_length()
