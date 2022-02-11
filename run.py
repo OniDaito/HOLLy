@@ -30,7 +30,7 @@ from util.loadsave import load_checkpoint, load_model
 from util.plyobj import load_obj, load_ply
 from util.math import PointsTen
 import torch.nn.functional as F
-from util.image import NormaliseTorch, NormaliseNull
+from util.image import NormaliseBasic, NormaliseNull
 from PIL import Image
 
 
@@ -87,8 +87,8 @@ def image_test(model, points, device, sigma, input_image, normaliser):
     """Test our model by loading an image and seeing how well we
     can match it. We might need to duplicate to match the batch size.
     """
-    # splat_in = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
-    splat_out = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+    # splat_in = Splat(device=device)
+    splat_out = Splat(device=device)
     model.set_splat(splat_out)
 
     # Need to call model.eval() to set certain layers to eval mode. Ones
@@ -148,7 +148,7 @@ if __name__ == "__main__":
 
     normaliser = NormaliseNull()
     if prev_args.normalise_basic:
-        normaliser = NormaliseTorch()
+        normaliser = NormaliseBasic()
 
     # Potentially load a different set of points
     if args.points != "":

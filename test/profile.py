@@ -18,7 +18,7 @@ from data.sets import DataSet, SetType
 from data.buffer import Buffer
 from data.batcher import Batcher
 from net.renderer import Splat
-from util.image import NormaliseTorch
+from util.image import NormaliseBasic
 import torch.optim as optim
 from torch.profiler import (
     profile,
@@ -80,7 +80,7 @@ class Profile(unittest.TestCase):
         print(count_parameters(model))
 
         print("Starting training new model")
-        normaliser = NormaliseTorch()
+        normaliser = NormaliseBasic()
 
         # We'd like a batch rather than a similar issue.
         batcher = Batcher(buffer_train, batch_size=batch_size)

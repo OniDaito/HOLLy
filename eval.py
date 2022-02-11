@@ -24,10 +24,10 @@ from stats import stats as S
 from tqdm import tqdm
 from pyquaternion import Quaternion
 from net.renderer import Splat
-from util.image import save_image
+from util.image import NormaliseBasic, save_image
 from util.plyobj import load_obj, save_obj, save_ply
 from util.loadsave import load_checkpoint, load_model
-from util.image import NormaliseTorch, NormaliseNull
+from util.image import NormaliseBasic, NormaliseNull
 from util.math import VecRotTen, VecRot, TransTen, PointsTen, vec_to_quat, qdist
 
 
@@ -70,7 +70,7 @@ def angle_eval(args, model, points, prev_args, device):
     normaliser = NormaliseNull()
     if prev_args.normalise_basic:
         print("Using basic normaliser.")
-        normaliser = NormaliseTorch()
+        normaliser = NormaliseBasic()
         normaliser.factor = args.nfactor
 
     # Load some base points from an obj
@@ -107,7 +107,7 @@ def angle_eval(args, model, points, prev_args, device):
 
             # Setup our splatting pipeline which is added to both dataloader
             # and our network as they use thTraine same settings
-            splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+            splat = Splat(device=device)
             result = splat.render(scaled_points, r, t, mask, sigma=args.sigma)
             save_image(result, args.savedir + "/" + "eval_in_" + str(idx).zfill(4) + ".jpg")
 
@@ -159,12 +159,12 @@ def basic_eval(args, model, points, prev_args, device):
 
     normaliser = NormaliseNull()
     if prev_args.normalise_basic:
-        normaliser = NormaliseTorch()
+        normaliser = NormaliseBasic()
         normaliser.factor = args.nfactor
 
     # Setup our splatting pipeline which is added to both dataloader
     # and our network as they use thTraine same settings
-    splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+    splat = Splat(device=device)
     loaded_points = load_obj(objpath=args.obj)
 
     mask = []

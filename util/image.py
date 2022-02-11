@@ -128,8 +128,7 @@ class NormaliseNull(object):
 # It needs to be a class so it can be pickled, which is
 # less elegant than a closure :/
 
-
-class NormaliseTorch(object):
+class NormaliseBasic(object):
     """
     Normalise using the total intensity and a scaling factor.
 
@@ -151,7 +150,7 @@ class NormaliseTorch(object):
 
         Returns
         -------
-        NormaliseTorch
+        NormaliseBasic
         """
         self.factor = 100.0
 
@@ -179,147 +178,3 @@ class NormaliseTorch(object):
         intensity = intensity.reshape(img_batch.shape[0], 1, 1, 1)
         dimg = img_batch * intensity
         return dimg
-
-
-class NormaliseMinMax(object):
-    """ Normalise using min and max values."""
-
-    def __init__(
-        self,
-        min_intensity: float,
-        max_intensity: float,
-        scalar=1.0,
-        image_size=(128, 128),
-    ):
-        """
-        Create the normaliser.
-
-        Parameters
-        ----------
-        min_intensity : float
-            The minimum intensity.
-        max_intensity : float
-            The Maximum intensity.
-        scalar : float
-            An option to scale the result.
-            Default - 1.0.
-        image_size : tuple
-            The image / tensor size we are expecting. We don't rely on the
-            shape() function on tensor as we might be operating on a batch.
-            Default - (128, 128)
-
-        Returns
-        -------
-        self
-        """
-        self.set(min_intensity, max_intensity, image_size)
-
-    def set(self, min_intensity, max_intensity, scalar=1.0, image_size=(128, 128)):
-        """
-        Set the normaliser's parameters.
-
-        Parameters
-        ----------
-        min_intensity : float
-            The minimum intensity.
-        max_intensity : float
-            The Maximum intensity.
-        scalar : float
-            An option to scale the result.
-            Default - 1.0.
-        image_size : tuple
-            The image / tensor size we are expecting. We don't rely on the
-            shape() function on tensor as we might be operating on a batch.
-            Default - (128, 128)
-
-        Returns
-        -------
-        torch.Tensor
-            The normalised tensor
-        """
-        self.min_intensity = min_intensity
-        self.max_intensity = max_intensity
-        self.image_size = image_size
-        self.scalar = 1.0
-
-    def normalise(self, img: torch.Tensor):
-        """
-        Given a min max, scale each pixel so the entire count sums to 1. We can
-        then scale it up with the scalar parameter.
-
-        Parameters
-        ----------
-        img : torch.Tensor
-            The tensor to normalise
-
-        Returns
-        -------
-        torch.Tensor
-            The normalised tensor
-        """
-        di = (torch.sum(img) - self.min_intensity) / (
-            self.max_intensity - self.min_intensity
-        )
-        dimg = (
-            img * (1.0 / (self.image_size[0] * self.image_size[1]) * di) * self.scalar
-        )
-        return dimg
-
-
-class NormaliseMaxIntense(object):
-    """Normalise using the maximum summed intensity from a number of
-    images rather than the single, highest value."""
-
-    def __init__(self, max_intensity: float, scalar=1.0):
-        """
-        Create the normaliser.
-
-        Parameters
-        ----------
-        max_intensity : float
-            The maximum intensity to use.
-        scalar : float
-            An optional scalar (default - 1.0).
-
-        Returns
-        -------
-        self
-        """
-        self.set(max_intensity, scalar)
-
-    def set(self, max_intensity: float, scalar=1.0):
-        """
-        Set the normaliser params
-
-        Parameters
-        ----------
-        max_intensity : float
-            The maximum intensity to use.
-        scalar : float
-            An optional scalar (default - 1.0).
-        image_size : tuple
-            The size of the images we are expecting in x,y pixels.
-            Default - (128, 128).
-
-        Returns
-        -------
-        self
-        """
-        self.max_intensity = max_intensity
-        self.scalar = scalar
-
-    def normalise(self, img):
-        """
-        Perform the normalisation.
-
-        Parameters
-        ----------
-        img : torch.Tensor
-            The image / tensor to normalisation.
-
-        Returns
-        -------
-        torch.Tensor
-            The normalised tensor.
-        """
-        return img / self.max_intensity * self.scalar

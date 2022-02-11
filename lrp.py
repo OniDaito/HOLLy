@@ -28,7 +28,7 @@ from net.net import num_flat_features
 from util.loadsave import load_checkpoint, load_model
 from util.plyobj import load_obj
 from util.math import PointsTen, VecRotTen, TransTen
-from util.image import save_image, NormaliseTorch, NormaliseNull
+from util.image import save_image, NormaliseBasic, NormaliseNull
 from net.renderer import Splat
 import matplotlib
 
@@ -247,7 +247,7 @@ class LRP(object):
             tx += pp
             ty += pp
 
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+        splat = Splat(device=device)
         splat.grads = False
         loaded_points = load_obj(objpath=self.obj)
         scaled_points = PointsTen(device)
@@ -338,7 +338,7 @@ if __name__ == "__main__":
 
     normaliser = NormaliseNull()
     if prev_args.normalise_basic:
-        normaliser = NormaliseTorch()
+        normaliser = NormaliseBasic()
 
     model.to(device)
     lrp = LRP(model, points, args.obj, normaliser, args.layerid, args.num_points, args.sigma)

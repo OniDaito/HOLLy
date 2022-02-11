@@ -15,7 +15,7 @@ import random
 from data.buffer import Buffer
 from data.batcher import Batcher
 from util.math import PointsTen
-from util.image import NormaliseNull, NormaliseTorch
+from util.image import NormaliseNull, NormaliseBasic
 from stats import stats as S
 from train.loss import calculate_loss
 
@@ -65,7 +65,7 @@ def test(
     normaliser = NormaliseNull()
 
     if args.normalise_basic:
-        normaliser = NormaliseTorch()
+        normaliser = NormaliseBasic()
 
     image_choice = random.randrange(0, args.batch_size)
     # We'd like a batch rather than a similar issue.

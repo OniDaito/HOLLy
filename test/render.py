@@ -36,7 +36,7 @@ class Render(unittest.TestCase):
         xt = torch.tensor([1.0], dtype=torch.float32)
         yt = torch.tensor([0.2], dtype=torch.float32)
 
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, size=(128, 256), device=device)
+        splat = Splat(size=(128, 256), device=device)
 
         r = VecRot(0, 0, 0).to_ten(device=device)
         r.random()
@@ -60,7 +60,7 @@ class Render(unittest.TestCase):
         xt = torch.tensor([0.0], dtype=torch.float32)
         yt = torch.tensor([0.0], dtype=torch.float32)
 
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, size=(256, 128), device=device)
+        splat = Splat(size=(256, 128), device=device)
 
         r = VecRot(0, 0, 0).to_ten(device=device)
         t = TransTen(xt, yt)
@@ -68,7 +68,6 @@ class Render(unittest.TestCase):
         model = splat.render(base_points, r, t, mask, sigma=1.8)
         self.assertTrue(torch.sum(model) > 200)
         save_image(model, name="test_renderer_tall.jpg")
-
 
     def test_dropout(self):
         use_cuda = False
@@ -87,7 +86,7 @@ class Render(unittest.TestCase):
         xt = torch.tensor([0.9], dtype=torch.float32)
         yt = torch.tensor([0.1], dtype=torch.float32)
 
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+        splat = Splat(device=device)
         r = VecRot(0, math.radians(90), 0).to_ten(device=device)
         t = TransTen(xt, yt)
 

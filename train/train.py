@@ -8,7 +8,6 @@ Author : Benjamin Blundell - k1803390@kcl.ac.uk
 train.py - the main network training routines.
 
 """
-from logging import BufferingFormatter
 import torch
 import torch.optim as optim
 import math
@@ -16,7 +15,7 @@ from data.loader import Loader
 from data.buffer import Buffer, BaseBuffer
 from data.batcher import Batcher
 from util.math import PointsTen
-from util.image import NormaliseNull, NormaliseTorch
+from util.image import NormaliseNull, NormaliseBasic
 from train.loss import calculate_loss, calculate_move_loss
 import numpy as np
 from util.loadsave import save_checkpoint, save_model
@@ -99,7 +98,7 @@ def validate(
     normaliser = NormaliseNull()
 
     if args.normalise_basic:
-        normaliser = NormaliseTorch()
+        normaliser = NormaliseBasic()
 
     # We'd like a batch rather than a similar issue.
     batcher = Batcher(buffer_valid, batch_size=args.batch_size)
@@ -176,7 +175,7 @@ def train(
     normaliser = NormaliseNull()
 
     if args.normalise_basic:
-        normaliser = NormaliseTorch()
+        normaliser = NormaliseBasic()
 
     sigma = sigma_lookup[0]
     data_loader.set_sigma(sigma)

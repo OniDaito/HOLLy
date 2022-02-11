@@ -15,7 +15,6 @@ from util.math import (
     gen_mat_from_rod,
     gen_trans_xy,
     gen_identity,
-    gen_perspective,
     gen_ndc,
     gen_scale,
     VecRotTen,
@@ -34,21 +33,14 @@ class Splat(object):
     # TODO - we should really check where requires grad is actually needed.
 
     def __init__(
-        self, fov, aspect, near, far, size=(128, 128), device=torch.device("cpu")
+        self, size=(128, 128), device=torch.device("cpu")
     ):
         """
         Initialise the renderer.
 
         Parameters
         ----------
-        fov : float
-            The field of view.
-        aspect : float
-            The aspect ratio.
-        near : float
-            The near plane.
-        far : float
-            The far plane.
+
         size : tuple
             The size of the rendered image, in pixels (default: (128, 128))
 
@@ -60,10 +52,10 @@ class Splat(object):
         """
 
         self.size = size
-        self.near = near
-        self.far = far
+        # self.near = near
+        # self.far = far
         self.device = device
-        self.perspective = gen_perspective(fov, aspect, near, far)
+        # self.perspective = gen_perspective(fov, aspect, near, far)
         self.modelview = gen_identity(device=self.device)
         self.trans_mat = gen_identity(device=self.device)
         self.rot_mat = gen_identity(device=self.device)
@@ -162,7 +154,7 @@ class Splat(object):
 
         """
         self.device = torch.device(device)
-        self.perspective = self.perspective.to(device)
+        # self.perspective = self.perspective.to(device)
         self.modelview = self.modelview.to(device)
         self.trans_mat = self.trans_mat.to(device)
         self.rot_mat = self.rot_mat.to(device)
@@ -217,10 +209,10 @@ class Splat(object):
         self.modelview = torch.matmul(
             torch.matmul(self.scale_mat, self.trans_mat), self.rot_mat
         )
-        o = torch.matmul(self.modelview, points.data)
-        s = torch.matmul(self.ndc, o)
-        px = s.narrow(1, 0, 1)
-        py = s.narrow(1, 1, 1)
+        p0 = torch.matmul(self.modelview, points.data)
+        p1 = torch.matmul(self.ndc, p0)
+        px = p1.narrow(1, 0, 1)
+        py = p1.narrow(1, 1, 1)
         ex = px.expand(points.data.shape[0], self.size[0], self.size[1])
         ey = py.expand(points.data.shape[0], self.size[0], self.size[1])
 

@@ -26,7 +26,7 @@ import os
 from tqdm import tqdm
 import scipy.stats
 from util.math import VecRotTen, VecRot, TransTen, PointsTen, qdist, vec_to_quat, angles_to_axis
-from util.image import NormaliseTorch, NormaliseNull
+from util.image import NormaliseBasic, NormaliseNull
 
 
 SCALE = 40
@@ -116,15 +116,15 @@ def sigma_effect(args, points, prev_args, device):
     import seaborn as sns
     import matplotlib.pyplot as plt
 
-    dim_size = args.dim_size # how many angles to compare to each other
-    sigmas = [10,8.1,6.56,5.31,4.3,3.65,2.95,2.39,1.94,1.57]
-    sigmas = [10,4.3,2.0]
+    dim_size = args.dim_size  # how many angles to compare to each other
+    sigmas = [10, 8.1, 6.56, 5.31, 4.3, 3.65, 2.95, 2.39, 1.94, 1.57]
+    sigmas = [10, 4.3, 2.0]
 
     # Which normalisation are we using?
     normaliser = NormaliseNull()
 
     if prev_args.normalise_basic:
-        normaliser = NormaliseTorch()
+        normaliser = NormaliseBasic()
 
     mask = []
     for _ in range(len(points)):
@@ -161,7 +161,7 @@ def sigma_effect(args, points, prev_args, device):
                 rdist = qdist(q0, q1)
                 losses_basic[s][x][y][0] = rdist
 
-    splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+    splat = Splat(device=device)
 
     for sidx in tqdm(range(len(sigmas))):
         current_sigma = sigmas[sidx]
@@ -238,7 +238,7 @@ def sigma_effect_model(args, model, points, prev_args, device):
     normaliser = NormaliseNull()
 
     if prev_args.normalise_basic:
-        normaliser = NormaliseTorch()
+        normaliser = NormaliseBasic()
 
     mask = []
     for _ in range(len(points)):
@@ -265,7 +265,7 @@ def sigma_effect_model(args, model, points, prev_args, device):
     for x in range(dim_size):
         rotations.append(VecRot(0, 0, 0).random().to_ten(device=device))
            
-    splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+    splat = Splat(device=device)
 
     for sidx in tqdm(range(len(sigmas))):
         current_sigma = sigmas[sidx]
@@ -342,7 +342,7 @@ def angle_check(args, model, points, prev_args, device):
 
     normaliser = NormaliseNull()
     if prev_args.normalise_basic:
-        normaliser = NormaliseTorch()
+        normaliser = NormaliseBasic()
 
     # Load some base points from an obj
     loaded_points = load_obj(objpath=args.obj)
@@ -359,7 +359,7 @@ def angle_check(args, model, points, prev_args, device):
         rot = VecRot(0, 0, 0)
         rot.random()
         rot = rot.to_ten(device=device)
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+        splat = Splat(device=device)
         target = splat.render(scaled_points, rot, trans, mask, sigma=args.sigma)
         target = target.reshape(1, 128, 128)
         target = target.repeat(prev_args.batch_size, 1, 1, 1)

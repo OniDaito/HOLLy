@@ -138,7 +138,7 @@ class GradCheck(object):
 
         # Setup our splatting pipeline which is added to both dataloader
         # and our network as they use the same settings
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=self.device)
+        splat = Splat(device=self.device)
         loaded_points = load_obj(objpath=self.obj)
         scaled_points = PointsTen(device=self.device)
         scaled_points.from_points(loaded_points)

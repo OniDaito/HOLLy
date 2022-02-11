@@ -14,11 +14,12 @@ import unittest
 import math
 import torch
 import torch.nn.functional as F
-from util.image import NormaliseTorch
+from util.image import NormaliseBasic
 from train import cont_sigma
 from util.math import PointsTen, VecRot, TransTen, Points
 from util.plyobj import load_obj
 from net.renderer import Splat
+
 
 class Args:
     def __init__(self):
@@ -180,7 +181,7 @@ class Train(unittest.TestCase):
 
         # Setup our splatting pipeline which is added to both dataloader
         # and our network as they use thTraine same settings
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+        splat = Splat(device=device)
         model = Net(splat)
         model.to(device)
         loaded_points = load_obj(objpath="./objs/teapot.obj")
@@ -250,7 +251,7 @@ class Train(unittest.TestCase):
         class TestRender(nn.Module):
             def __init__(self, device):
                 super(TestRender, self).__init__()
-                self.splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+                self.splat = Splat(device=device)
                 self.sigma = 4.0
                 xt = torch.tensor([0.0], dtype=torch.float32)
                 yt = torch.tensor([0.0], dtype=torch.float32)
@@ -280,7 +281,7 @@ class Train(unittest.TestCase):
         loaded_points = PointsTen().from_points(loaded_points)
         # Base image
         base_image = None
-        norm_mean = NormaliseTorch()
+        norm_mean = NormaliseBasic()
         norm_mean.factor = 1000.0
         
         variables = []
@@ -337,7 +338,7 @@ class Train(unittest.TestCase):
         diffs_sum = []
 
         # Now T2 bit for the sum loss.
-        norm_sum = NormaliseTorch()
+        norm_sum = NormaliseBasic()
         loaded_points2 = load_obj(objpath="./objs/bunny_large.obj")
         loaded_points2 = PointsTen().from_points(loaded_points2)
         loaded_points2.data.requires_grad_(requires_grad=True)

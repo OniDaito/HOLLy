@@ -18,7 +18,7 @@ import argparse
 import sys
 import os
 from util.image import load_fits
-from util.image import NormaliseTorch, NormaliseNull
+from util.image import NormaliseBasic, NormaliseNull
 import torch.nn.functional as F
 
 
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     normaliser = NormaliseNull()
 
     if args.norm:
-        normaliser = NormaliseTorch()
+        normaliser = NormaliseBasic()
 
     # Potentially load a different set of points
     if os.path.isfile(args.i) and os.path.isfile(args.j):

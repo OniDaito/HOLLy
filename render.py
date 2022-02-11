@@ -41,7 +41,7 @@ if __name__ == "__main__":
     from util.image import save_image, save_fits
     from net.renderer import Splat
     from util.math import TransTen, PointsTen, VecRot, angles_to_axis
-    from util.image import NormaliseTorch, NormaliseNull
+    from util.image import NormaliseBasic, NormaliseNull
     from pyquaternion import Quaternion
 
     parser = argparse.ArgumentParser(description="Render an image.")
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     normaliser = NormaliseNull()
 
     if args.norm:
-        normaliser = NormaliseTorch()
+        normaliser = NormaliseBasic()
 
     mask = []
     for _ in range(len(base_points)):
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     xt = torch.tensor([0.0], dtype=torch.float32)
     yt = torch.tensor([0.0], dtype=torch.float32)
 
-    splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+    splat = Splat(device=device)
     r = VecRot(0, 0, 0).to_ten(device=device)
 
     if args.rot is not None:

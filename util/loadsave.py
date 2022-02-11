@@ -124,9 +124,6 @@ def load_checkpoint(
     args = Args()
     args.lr = 0.0004
     args.normalise_basic = True
-    args.predict_sigma = True
-    args.no_translate = False
-    args.predict_translate = True
     args.max_trans = 1.0
 
     try:
@@ -139,8 +136,6 @@ def load_checkpoint(
 
     points = points.data.to(device)
     model = model.to(device)
-    model.predict_sigma = args.predict_sigma
-    model.predict_translate = not args.no_translate
     model.max_trans = args.max_trans
 
     return (model, points, optimiser, epoch, batch_idx, loss, args)

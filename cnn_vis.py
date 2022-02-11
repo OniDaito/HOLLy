@@ -135,7 +135,7 @@ class CNNLayerVisualization:
         rot.randomise()
         trans = TransTen(ze, ze)
 
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+        splat = Splat(device=device)
         splat.grads = False
         loaded_points = load_obj(objpath=self.obj)
         scaled_points = PointsTen(device)

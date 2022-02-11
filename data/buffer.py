@@ -167,7 +167,7 @@ class BaseBuffer(object):
             self.counter = 0
             raise StopIteration("Reached the end of the dataset.")
         except Exception as e:
-            print ("Base Buffer Exception", e)
+            print("Base Buffer Exception", e)
             raise e
 
 
@@ -202,9 +202,7 @@ class Buffer(BaseBuffer):
         self.counter = 0
         try:
             del self.buffer[:]
-            # for i in tqdm(range(0, min(
-            #        self.buffer_size, self.set.remaining())),
-            #        desc="Filling buffer"):
+
             for i in range(0, min(self.buffer_size, self.set.remaining())):
                 # Here is where we render and place into the buffer
                 datum = self.set.__next__()
@@ -222,8 +220,9 @@ class Buffer(BaseBuffer):
                     self.buffer.append(ItemRendered(rendered, r, t, datum.sigma))
 
         except Exception as e:
-            print ("Buffer exception on Fill", e)
+            print("Buffer exception on Fill", e)
             raise e
+
         return self
 
     def image_size(self):

@@ -63,7 +63,18 @@ class ImageLoader(Loader):
         self.filenames = []
         self.deterministic = False
         self.sigma = sigma
+        self.sigmas = []
+        subdirs = [x[0] for x in os.walk(self.base_image_path)]
 
+        for s in subdirs:
+            try:
+                sigma_level = float(s)
+                self.sigmas.append(sigma_level)
+            except Exception as e:
+                print(e)
+
+        self.sigmas.sort()
+        self.sigmas.reverse()
         self._create_data()
 
     def _find_files(self, path, max_num):
@@ -107,9 +118,10 @@ class ImageLoader(Loader):
 
     def set_sigma(self, sigma):
         """
-        Set the sigma and immediately create the data, looking for images
-        in the directory that matches the sigma.
-
+        Set the sigma and create the data. We look for the sigma nearest
+        the one that has been sent in. If it's different we recreate,
+        otherwise we do nothing.
+        
         Parameters
         ----------
         sigma : float
@@ -119,8 +131,15 @@ class ImageLoader(Loader):
         -------
         self
         """
-        self.sigma = sigma
-        self._create_data()
+        new_sigma = self.sigma
+        
+        for s in self.sigmas:
+            if sigma - s > 0:
+                new_sigma = s
+
+        if new_sigma != self.sigma:
+            self.sigma = new_sigma
+            self._create_data()
         return self
 
     def _create_data(self):

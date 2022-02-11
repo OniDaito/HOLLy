@@ -17,12 +17,12 @@ import random
 from pyquaternion import Quaternion
 
 
-
 def dotty(p, q):
     return p[0] * q[0] + p[1] * q[1] + p[2] * q[2] + p[3] * q[3]
 
 
 def qdist(q0, q1):
+    """ The Distance between two Quaternions """
     q0_minus_q1 = [q0[0] - q1[0], q0[1] - q1[1], q0[2] - q1[2], q0[3] - q1[3]]
     d_minus = math.sqrt(dotty(q0_minus_q1, q0_minus_q1))
     q0_plus_q1 = [q0[0] + q1[0], q0[1] + q1[1], q0[2] + q1[2], q0[3] + q1[3]]
@@ -33,21 +33,24 @@ def qdist(q0, q1):
 
 
 def qrotdiff(q0, q1):
+    """ The Distance between two Quaternions using a different measure. """
     d = dotty(q0, q1)
     d = math.fabs(d) 
     return 2.0 * math.acos(d)
 
 
 def vec_to_quat(rv):
+    """ Convert angle axis to a Quaternion """
+
     angle = math.sqrt(rv.x * rv.x + rv.y * rv.y + rv.z * rv.z)
     ax = rv.x / angle
     ay = rv.x / angle
     az = rv.x / angle
 
-    qx = ax * math.sin(angle/2)
-    qy = ay * math.sin(angle/2)
-    qz = az * math.sin(angle/2)
-    qw = math.cos(angle/2)
+    qx = ax * math.sin(angle / 2)
+    qy = ay * math.sin(angle / 2)
+    qz = az * math.sin(angle / 2)
+    qw = math.cos(angle / 2)
     return (qx, qy, qz, qw)
 
 
@@ -214,6 +217,30 @@ class Points:
         self.data.append(point)
         self.size = len(self.data)
         return self
+
+    def to_ten(self, device="cpu"):
+        """
+        Create our PointsTen from a Points instance
+
+        Parameters
+        ----------
+        points : Points
+
+        Returns
+        -------
+        self
+
+        """
+        tp = []
+        for p in self.data:
+            ttp = []
+            ttp.append([p.x])
+            ttp.append([p.y])
+            ttp.append([p.z])
+            ttp.append([p.w])
+            tp.append(ttp)
+        tten = torch.tensor(tp, dtype=torch.float32, device=device)
+        return PointsTen().from_tensor(tten)
 
     def to_array(self) -> array:
         return array('d', self.get_chunk())
@@ -899,6 +926,7 @@ def gen_scale(x: torch.Tensor, y: torch.Tensor, z: torch.Tensor):
 def gen_ndc(size, device="cpu"):
     """
     Generate a normalised-device-coordinates to screen matrix.
+    It also does the ortho matrix for us as well.
 
     Parameters
     ----------
@@ -1190,12 +1218,12 @@ def angles_to_axis(x_rot: float, y_rot: float, z_rot: float) -> VecRot:
     """
     # https://www.euclideanspace.com/maths/geometry/rotations/conversions/eulerToAngle/
 
-    c1 = math.cos(y_rot/2)
-    s1 = math.sin(y_rot/2)
-    c2 = math.cos(z_rot/2)
-    s2 = math.sin(z_rot/2)
-    c3 = math.cos(x_rot/2)
-    s3 = math.sin(x_rot/2)
+    c1 = math.cos(y_rot / 2)
+    s1 = math.sin(y_rot / 2)
+    c2 = math.cos(z_rot / 2)
+    s2 = math.sin(z_rot / 2)
+    c3 = math.cos(x_rot / 2)
+    s3 = math.sin(x_rot / 2)
     c1c2 = c1 * c2
     s1s2 = s1 * s2
     w = c1c2 * c3 - s1s2 * s3

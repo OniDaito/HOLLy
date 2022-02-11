@@ -144,9 +144,9 @@ class Net(nn.Module):
         
         # Fully connected layers
         last_filter_size = 256
-        self.fc1 = nn.Linear(csize[0] * csize[1] * last_filter_size, 512)
+        self.fc1 = nn.Linear(csize[0] * csize[1] * last_filter_size, 256)
         num_params = 6
-        self.fc2 = nn.Linear(512, num_params)
+        self.fc2 = nn.Linear(256, num_params)
 
         self.max_shift = max_trans
         self.splat = splat

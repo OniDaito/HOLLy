@@ -23,14 +23,14 @@ from data.batcher import Batcher
 from net.renderer import Splat
 from util.math import vec_to_quat, qdist
 from util.render import render
-from util.image import NormaliseTorch
+from util.image import NormaliseBasic
 
 
 class Data(unittest.TestCase):
     def test_loader(self):
         """Perform a series of tests on our DataLoader class. Eventually, we shall
         move this to a proper test suite."""
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
 
         with torch.no_grad():
             d = Loader(size=100, objpath="./objs/teapot_large.obj",
@@ -53,7 +53,7 @@ class Data(unittest.TestCase):
 
     def test_set(self):
         """ Test the set class that lives above the loader."""
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
         # Initial setup of PyTorch
         loader = Loader(size=96, objpath="./objs/bunny_large.obj", wobble=0.0)
 
@@ -100,7 +100,7 @@ class Data(unittest.TestCase):
     def test_buffer(self):
         """ Test our buffer class that sits above the set."""
 
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
         loader = Loader(size=200, objpath="./objs/teapot_large.obj")
 
         loader2 = Loader(size=200, objpath="./objs/teapot_large.obj")
@@ -118,7 +118,7 @@ class Data(unittest.TestCase):
         dataset2.reset()
         buffer2.fill()
 
-        out0 = buffer[0][0]
+        out0 = buffer[0].flatten()[0]
         # save_image(out.cpu().detach().numpy(), "databuffer_test_0a.jpg")
 
         (p, m, r, t, sig) = dataset[0].unpack()
@@ -129,7 +129,7 @@ class Data(unittest.TestCase):
 
         for i in range(90):
             buffer.__next__()
-        (datum, r, t, sigma) = buffer.__next__()
+        (datum, r, t, sigma) = buffer.__next__().flatten()
         self.assertFalse(torch.sum(torch.abs(torch.sub(datum, out1))) < 1.0)
         # save_image(datum.cpu().detach().numpy(), "databuffer_test_0c.jpg")
 
@@ -149,7 +149,7 @@ class Data(unittest.TestCase):
 
     def test_batcher(self):
         """ Test the batcher."""
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
         loader = Loader(size=200, objpath="./objs/teapot_large.obj")
 
         dataset = DataSet(SetType.TRAIN, 200, loader, deterministic=True)
@@ -159,27 +159,27 @@ class Data(unittest.TestCase):
         batcher = Batcher(buffer)
 
         for i, b in enumerate(batcher):
-            self.assertTrue(len(b) == 4)
-            self.assertTrue(len(b[0]) == 16)
+            self.assertTrue(len(b.rotations) == 3)
+            self.assertTrue(len(b.translations) == 2)
 
     def test_normalise(self):
         """ Test the normaliser."""
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
         loader = Loader(size=200, objpath="./objs/teapot_large.obj")
         dataset = DataSet(SetType.TRAIN, 200, loader, deterministic=True)
         buffer = Buffer(dataset, splat, buffer_size=100, device="cpu")
         batcher = Batcher(buffer)
-        normaliser = NormaliseTorch()
+        normaliser = NormaliseBasic()
 
         for i, b in enumerate(batcher):
-            target = b[0]
+            target = b.datum
             self.assertTrue(torch.sum(target[0]) != 100.0)
             normalised = normaliser.normalise(target.reshape(16, 1, 128, 128))
             self.assertTrue(torch.sum(normalised[0]) == 100.0)
             break
 
     def test_wobble(self):
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
 
         random.seed(30)
         d0 = Loader(
@@ -214,7 +214,7 @@ class Data(unittest.TestCase):
         #            "dataload_wobble_test_1.jpg")
 
     def test_spawn(self):
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
 
         with torch.no_grad():
             random.seed(42)
@@ -256,7 +256,7 @@ class Data(unittest.TestCase):
         import numpy as np
         import matplotlib.pyplot as plt
         
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
         d0 = Loader(
             size=2, objpath="./objs/teapot_large.obj", dropout=0.0,
             augment=True, num_augment=10)
@@ -342,7 +342,7 @@ class Data(unittest.TestCase):
 
 
     def test_all(self):
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
 
         with torch.no_grad():
             random.seed(42)
@@ -392,7 +392,7 @@ class Data(unittest.TestCase):
         """Perform a series of tests on our DataLoader class. Eventually, we shall
         move this to a proper test suite."""
         from util.image import save_image
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
 
         with torch.no_grad():
             d = Loader(size=10, objpath="./objs/bunny_large.obj", wobble=0.0,
@@ -411,7 +411,7 @@ class Data(unittest.TestCase):
                     pm = m
 
     def test_load_save(self):
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
         loader = Loader(size=200, objpath="./objs/teapot_large.obj")
         dataset = DataSet(SetType.TRAIN, 100, loader, deterministic=True)
         dataset_test = DataSet(SetType.TEST, 100, loader, deterministic=True)
@@ -442,7 +442,7 @@ class Data(unittest.TestCase):
             pass
 
     def test_losses(self):
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
         d = Loader(size=10, objpath="./objs/bunny_large.obj")
 
         d.set_sigma(sigma=2.0)
@@ -454,8 +454,8 @@ class Data(unittest.TestCase):
         out0 = base0.reshape(1, 1, 128, 128)
         out1 = base1.reshape(1, 1, 128, 128)
 
-        norm_core = NormaliseTorch()
-        norm_large = NormaliseTorch()
+        norm_core = NormaliseBasic()
+        norm_large = NormaliseBasic()
         norm_large.factor = 1000.0
 
         print("Intensities")
@@ -500,7 +500,7 @@ class Data(unittest.TestCase):
         print("Loss big:", F.l1_loss(bbig0, bbig1, reduction="mean").item())
 
     def test_paper(self):
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
 
         random.seed(30)
         d0 = Loader(
