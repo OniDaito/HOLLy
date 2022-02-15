@@ -33,6 +33,6 @@ ENV HOME=/home/user
 RUN chmod 777 /home/user
 
 # Holly specific steps
-RUN pip3 install torch astropy numpy pillow psycopg2 redis pyquaternion pywavefront tqdm scipy rich graphviz
+RUN pip3 install torch astropy numpy pillow psycopg2 redis pyquaternion pywavefront tqdm scipy rich graphviz pynvml prettytable pyerfa
 # Set the default command to python3
 CMD ["python3"]

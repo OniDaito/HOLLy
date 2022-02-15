@@ -3,13 +3,10 @@
 
 [![DOI](https://zenodo.org/badge/369292185.svg)](https://zenodo.org/badge/latestdoi/369292185)
 
-
 ![Evolving structure](https://shutr.benjamin.computer/static/shutr_files/original/num2021_05_14_cep_0.gif)
 ![Bunny](https://shutr.benjamin.computer/static/shutr_files/original/file.gif)
 
-A [PyTorch](https://pytorch.org/) based neural network program designed to recontruct single molecules in 3D from a series of 2D storm images.
-
-The goal of this network is to take a set of 2D representations of a molecule (or other simulated object) and create a 3D pointcloud of the molecule. We predict the pose and structure using a Convolutional Neural Network. 
+A [PyTorch](https://pytorch.org/) based neural network program designed to recontruct protein complexes in 3D from a series of 2D microscopy images. We predict the pose and structure using a Convolutional Neural Network. 
 
 ## Overview
 
@@ -17,7 +14,7 @@ HOLLy takes a number of images (it can also generate images from a ground-truth 
 
 HOLLy is split into *train.py* and *run.py* with the actual net stored in in *net/net.py*. *eval.py* will evaluate a trained network, creating statistics and visualistions. 
 
-*net/renderer.py* contains the code for the differentiable renderer. *data/loader.py*, along with *data/buffer.py* and *data/batcher.py* create our simulated data for all the tests, including adding noise. *data/imageload.py* is similar, but for pre-rendered images.
+*net/renderer.py* contains the code for the differentiable renderer. *data/loader.py*, along with *data/buffer.py* and *data/batcher.py* create our simulated data for all the tests, including adding noise. *data/imageload.py* is similar, but for the real microscopy images.
 
 (The diagram below is animated and may take a little time to appear).
 ![Overview diagram](https://shutr.benjamin.computer/static/shutr_files/original/diagram.gif)
@@ -25,27 +22,6 @@ HOLLy is split into *train.py* and *run.py* with the actual net stored in in *ne
 ## Documentation
 
 This readme covers most of the details of HOLLy, but we also have more documentation available at [Read The Docs](https://holly.readthedocs.io/en/latest/).
-
-## Publication
-
-[3D Structure from 2D Microscopy images using Deep Learning - Frontiers in Bioinformatics](https://www.frontiersin.org/articles/10.3389/fbinf.2021.740342/abstract)
-
-    @article{blundell3DStructure2D01,
-        title = {{{3D Structure}} from {{2D Microscopy}} Images Using {{Deep Learning}}},
-        author = {Blundell, Benjamin James and Rosten, Ed and Ch'ng, QueeLim and Cox, Susan and Manley, Suliana and Sieben, Christian},
-        year = {2021},
-        journal = {Frontiers in Bioinformatics},
-        volume = {0},
-        publisher = {{Frontiers}},
-        issn = {2673-7647},
-        doi = {10.3389/fbinf.2021.740342},
-        copyright = {All rights reserved},
-        langid = {english},
-    }
-
-### Citing with Bibtex
-
-See the CITATION.cff file.
 
 ## Installation
 
@@ -117,8 +93,10 @@ To train a new network on simulated data, run the following command in the top l
 
 It is also possible to use the provided bash script to execute training in a given directory, saving the various options and code versions to various files. This is more useful if you want to run many tests, saving the various settings.
 
+    mkdir ../runs/temp
     cd run
-    ./train.sh <path of output file>
+    cp run.conf.example ../../runs/temp/run.conf
+    ./train.sh ../../runs/temp "My first run"
 
 The bash script *train.sh* looks for a file called *run.conf* that contains the required data for training a network. The file *run.conf.example* can be copied to *run.conf*. Make sure the directory referred to for saving the results exists.
 
@@ -149,6 +127,8 @@ There are a large number of options you can pass to the network. These are liste
 * --num-points - how many points do we want to try and fit to the structure.
 * --epochs - how many epochs should we run for?
 * --sigma-file - the path to the file containing the per-epoch sigmas.
+* --image-width - the width of the input and output images
+* --image-height - the height of the input and output images
 
 Training usually takes around 4 hours on a nVidia 2080Ti system when running for 20 epochs on an 80,000 size training set.
 
@@ -175,8 +155,7 @@ To use real, experimental data one must have a number of images, rendered using 
 The sigma file (sigma_images.csv) would be:
     10,8,1.2
 
-Images should be in [FITS Format](https://en.wikipedia.org/wiki/FITS) (they support floating point values), and be 128x128 in size. Future versions of the software will support variable image sizes.
-
+Images should be in [FITS Format](https://en.wikipedia.org/wiki/FITS) (they support floating point values).
 We would then run the following command:
     python train.py --fitspath images --train-size 80000 --lr 0.0004 --savedir /tmp/runs/test_run --num-points 230 --no-translation --epochs 20 --sigma-file sigma_images.csv
 
@@ -354,6 +333,26 @@ When running train.py, there are a number of options one can choose.
     --buffer-size
     How big is the buffer in images?  (default: 40000)
 
+## Publication
+
+[3D Structure from 2D Microscopy images using Deep Learning - Frontiers in Bioinformatics](https://www.frontiersin.org/articles/10.3389/fbinf.2021.740342/abstract)
+
+    @article{blundell3DStructure2D01,
+        title = {{{3D Structure}} from {{2D Microscopy}} Images Using {{Deep Learning}}},
+        author = {Blundell, Benjamin James and Rosten, Ed and Ch'ng, QueeLim and Cox, Susan and Manley, Suliana and Sieben, Christian},
+        year = {2021},
+        journal = {Frontiers in Bioinformatics},
+        volume = {0},
+        publisher = {{Frontiers}},
+        issn = {2673-7647},
+        doi = {10.3389/fbinf.2021.740342},
+        copyright = {All rights reserved},
+        langid = {english},
+    }
+
+### Citing this software with Bibtex
+
+See the CITATION.cff file.
 
 ## Contributing
 

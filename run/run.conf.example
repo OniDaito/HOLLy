@@ -5,4 +5,4 @@
 # Execute the following commands to get the code associated with this run:
 #git clone gogs@git.benjamin.computer:oni/shaper.git
 #git reset --hard  d94277d56121287a7417153c5ce579d7be7e525
-python ../train.py --savedir ../../runs/temp --save-interval 400 --train-size 100 --test-size 40 --valid-size 10 --objpath ../objs/teapot_large.obj --no-cuda --buffer-size 200 --epochs 20 --batch-size 2 --log-interval 100 --num-points 50 --lr 0.0004 --sigma-file sigma.csv
+python ../train.py --savedir ../../runs/temp --save-interval 400 --train-size 100 --test-size 40 --valid-size 10 --objpath ../objs/teapot_large.obj --buffer-size 200 --epochs 20 --batch-size 2 --log-interval 100 --num-points 50 --lr 0.0004 --sigma-file sigma.csv

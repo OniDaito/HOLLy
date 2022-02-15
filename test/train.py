@@ -15,7 +15,7 @@ import math
 import torch
 import torch.nn.functional as F
 from util.image import NormaliseBasic
-from train import cont_sigma
+from train.train import cont_sigma
 from util.math import PointsTen, VecRot, TransTen, Points
 from util.plyobj import load_obj
 from net.renderer import Splat
@@ -184,7 +184,7 @@ class Train(unittest.TestCase):
         splat = Splat(device=device)
         model = Net(splat)
         model.to(device)
-        loaded_points = load_obj(objpath="./objs/teapot.obj")
+        loaded_points = load_obj(objpath="./objs/teapot_large.obj")
         mask = torch.ones((len(loaded_points)), dtype=torch.float32)
         batch_size = 1
 
@@ -198,7 +198,6 @@ class Train(unittest.TestCase):
             target = result.reshape(batch_size, 128, 128)
             target = target.repeat(1, 1, 1, 1)
             target = target.to(device)
-            model.set_sigma(2.0)
 
         loaded_points.data.requires_grad_(requires_grad=True)
         output = model.forward(target, loaded_points.data)
