@@ -4,17 +4,16 @@
 #  / _/ _ \/ __/ _\ \/ /___/ // _//    / /__/ _/
 # /_/ \___/_/   /___/\___/___/___/_/|_/\___/___/
 #
-# Author : Benjamin Blundell - k1803390@kcl.ac.uk
+# Author : Benjamin Blundell - benjamin.blundell@kcl.ac.uk
 #
 # Run our various scripts and package everything up in the data dir
 # then upload to the server for viewing.
 #
-# Example usage: ./generate_stats.sh  -i /tmp/runs/test_run -g ../objs/teapot.obj -a -z
+# Example usage: ./generate_stats.sh  -i /tmp/runs/test_run -g ../objs/teapot.obj -a
 # 
 # -i : input path of the experiment
 # -g : the groundtruth obj file, if there was one
 # -a : evaluate angles and create an animation
-# -z : no translation was used
 # -n : Use basic normalisation (needs to match the experiment)
 #
 # https://misc.flogisoft.com/bash/tip_colors_and_formatting
@@ -112,8 +111,8 @@ if [ "$animate" = true ]; then
   python ../eval.py --no-cuda --savedir $base --obj $groundtruth --animate $extras
 
   # Create an animated gif
-  ffmpeg -i $base/eval_in_%3d.jpg -r 5 -pix_fmt rgb24 $base/input.gif
-  ffmpeg -i $base/eval_out_%3d.jpg -r 5 -pix_fmt rgb24 $base/output.gif
+  ffmpeg -i $base/eval_in_%4d.jpg -r 5 -pix_fmt rgb24 $base/input.gif
+  ffmpeg -i $base/eval_out_%4d.jpg -r 5 -pix_fmt rgb24 $base/output.gif
   rm $base/anim_output.gif
   rm $base/anim_output.mp4
   ffmpeg -i $base/input.gif  -i $base/output.gif -r 5 -filter_complex '[0:v]pad=iw*2:ih[int];[int][1:v]overlay=W/2:0[vid]' -map [vid] -c:v libx264 -crf 23 -preset veryfast $base/anim_output.mp4
@@ -125,22 +124,4 @@ else
 fi
 
 # Mesh score won't be installed on other systems so lets comment out for now
-../../mesh_score/build/mesh_score -b $groundtruth -t $base/eval_out.ply > $base/mesh_score.txt 
-
-# Export the redis data to a set of CSVs which we will then add to a zip
-# but only if they don't already exist
-#if [ ! -f $base/redis_csv_data.zip ]
-#then	
-#  echo -e "\U1F69A " ${GREEN}EXPORTING REDIS DATA${NC} "\U1F69A"
-#  mkdir parts
-#  for i in `redis-cli  KEYS "$subdir:*" | tr -d '"' `
-#  do
-#    redis-cli --csv ZRANGE $i 0 -1 > parts/$i.csv
-#  done
-
-#  cd parts
-#  zip redis_csv_data.zip *
-#  mv redis_csv_data.zip ../$base/.
-#  cd ..
-#  rm -rf parts
-#fi
+# ../../mesh_score/build/mesh_score -b $groundtruth -t $base/eval_out.ply > $base/mesh_score.txt 

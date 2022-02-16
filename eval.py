@@ -3,7 +3,7 @@
   / _/__  ____  / __/ ___/  _/ __/ |/ / ___/ __/
  / _/ _ \/ __/ _\ \/ /___/ // _//    / /__/ _/      # noqa
 /_/ \___/_/   /___/\___/___/___/_/|_/\___/___/      # noqa
-Author : Benjamin Blundell - k1803390@kcl.ac.uk
+Author : Benjamin Blundell - benjamin.blundell@kcl.ac.uk
 
 eval.py - load a model, set to evaluation mode and run a few
 examples and spit out some stats.
@@ -116,9 +116,6 @@ def angle_eval(args, model, points, prev_args, device):
             target = target.to(device)
             target = normaliser.normalise(target)
 
-            if not model.predict_sigma:
-                model.set_sigma(args.sigma)
-
             output = model.forward(target, points)
             output = normaliser.normalise(output.reshape(prev_args.batch_size, 1, 128, 128))
             loss = F.l1_loss(output, target)
@@ -128,7 +125,7 @@ def angle_eval(args, model, points, prev_args, device):
 
             if args.stats:
                 S.write_immediate(rots[0], "eval_rot_out", 0, 0, idx)
-                S.write_immediate(loss, "eval_loss", 0, 0,  idx)
+                S.write_immediate(loss, "eval_loss", 0, 0, idx)
 
 
 def basic_eval(args, model, points, prev_args, device):
@@ -184,11 +181,9 @@ def basic_eval(args, model, points, prev_args, device):
 
     # We use tpoints because otherwise we can't update points
     # and keep working out the gradient cos pytorch weirdness
-    model.set_sigma(args.sigma)
     output = model.forward(target, points)
     output = normaliser.normalise(output.reshape(prev_args.batch_size, 1, 128, 128))
     loss = F.l1_loss(output, target)
-    print("Predicting Sigma:", model.predict_sigma)
     print("Loss :", loss)
     print("Rotations returned:", model.get_render_params())
     output = torch.squeeze(output.cpu()[0])
@@ -208,9 +203,8 @@ def basic_eval(args, model, points, prev_args, device):
     xr = torch.tensor([rots[0][0]], dtype=torch.float32, device=device)
     yr = torch.tensor([rots[0][1]], dtype=torch.float32, device=device)
     zr = torch.tensor([rots[0][2]], dtype=torch.float32, device=device)
-    if not args.no_translate:
-        xt = torch.tensor([rots[0][3]], dtype=torch.float32, device=device)
-        yt = torch.tensor([rots[0][4]], dtype=torch.float32, device=device)
+    xt = torch.tensor([rots[0][3]], dtype=torch.float32, device=device)
+    yt = torch.tensor([rots[0][4]], dtype=torch.float32, device=device)
     r = VecRotTen(xr, yr, zr)
     t = TransTen(xt, yt)
     trans_points = splat.transform_points(points, r, t)
@@ -302,12 +296,6 @@ if __name__ == "__main__":
         "--savename",
         default="checkpoint.pth.tar",
         help="The name for checkpoint save file.",
-    )
-    parser.add_argument(
-        "--no-translate",
-        action="store_true",
-        default=False,
-        help="Turn off translation (default: false)",
     )
 
     # Initial setup of PyTorch

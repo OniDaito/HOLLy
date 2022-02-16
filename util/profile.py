@@ -3,7 +3,7 @@
   / _/__  ____  / __/ ___/  _/ __/ |/ / ___/ __/
  / _/ _ \/ __/ _\ \/ /___/ // _//    / /__/ _/      # noqa 
 /_/ \___/_/   /___/\___/___/___/_/|_/\___/___/      # noqa 
-Author : Benjamin Blundell - k1803390@kcl.ac.uk
+Author : Benjamin Blundell - benjamin.blundell@kcl.ac.uk
 
 profile.py - a few functions that help us do some 
 profiling.

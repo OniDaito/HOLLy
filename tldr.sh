@@ -4,7 +4,7 @@
 #  / _/ _ \/ __/ _\ \/ /___/ // _//    / /__/ _/
 # /_/ \___/_/   /___/\___/___/___/_/|_/\___/___/
 #
-# Author : Benjamin Blundell - k1803390@kcl.ac.uk
+# Author : Benjamin Blundell - benjamin.blundell@kcl.ac.uk
 #
 # tldr.sh - create a miniconda instance called holly,
 # download all the required packages, train a

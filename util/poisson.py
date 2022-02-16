@@ -3,7 +3,7 @@
   / _/__  ____  / __/ ___/  _/ __/ |/ / ___/ __/
  / _/ _ \/ __/ _\ \/ /___/ // _//    / /__/ _/
 /_/ \___/_/   /___/\___/___/___/_/|_/\___/___/
-Author : Benjamin Blundell - k1803390@kcl.ac.uk
+Author : Benjamin Blundell - benjamin.blundell@kcl.ac.uk
 
 poisson.py - a poisson sampler for points in the
 initial setup
