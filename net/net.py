@@ -5,7 +5,7 @@
 /_/ \___/_/   /___/\___/___/___/_/|_/\___/___/          # noqa
 Author : Benjamin Blundell - k1803390@kcl.ac.uk
 
- net.py - an attempt to find the 3D shape from an image.
+ net.py - the HOLLy neural network architecture.
 
 """
 import torch
@@ -38,6 +38,7 @@ def conv_size(shape, padding=0, kernel_size=5, stride=1) -> int:
     x = int((shape[1] - kernel_size + 2 * padding) / stride + 1)
     y = int((shape[0] - kernel_size + 2 * padding) / stride + 1)
     return (y, x)
+
 
 def num_flat_features(x):
     """
@@ -215,6 +216,9 @@ class Net(nn.Module):
         return iter(self.layers)
 
     def __next__(self):
+        """
+        Return the 'next' layer in the network
+        """
         if self._lidx > len(self.layers):
             self._lidx = 0
             raise StopIteration
@@ -223,15 +227,24 @@ class Net(nn.Module):
         return rval
 
     def to(self, device):
+        """ 
+        Move the network to a different device
+        """
         super(Net, self).to(device)
         self.splat.to(device)
         self.device = device
         return self
 
     def set_splat(self, splat: Splat):
+        """
+        Set the differentiable renderer for this network
+        """
         self.splat = splat
 
-    def get_rots(self):
+    def get_render_params(self):
+        """
+        Return the resulting renderer parameters.
+        """
         return self._final
 
     def forward(self, source: torch.Tensor, points: PointsTen):

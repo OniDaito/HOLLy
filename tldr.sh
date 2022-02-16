@@ -26,14 +26,14 @@ mkdir experiment
 echo -e "\U1F3CB " ${RED}TRAINING${NC} "\U1F3CB"
 
 # Start the training
-python3 train.py --obj objs/teapot_large.obj \
---train-size 80000 --lr 0.0004 --savedir experiment \
---num-points 230 --no-translate --no-data-translate --epochs 20 \
---sigma-file run/sigma.csv
+python3 train.py --obj ./objs/teapot_large.obj \
+--train-size 40000 --lr 0.0004 --savedir experiment \
+--num-points 230 --epochs 40 \
+--sigma-file ./run/sigma.csv
 
 # Generate the final stats
 cd run
-./generate_stats.sh -i ../experiment -g ../objs/teapot_large.obj -a -z
+./generate_stats.sh -i ../experiment -g ../objs/teapot_large.obj
 cd ..
 
 echo "${YELLOW}Take a look in the experiment directory for the new outputs.${NC}"

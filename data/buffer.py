@@ -172,9 +172,11 @@ class BaseBuffer(object):
 
 
 class Buffer(BaseBuffer):
-    """A Buffer holds the actual data, either rendered and ready to go or it
+    """
+    A Buffer holds the actual data, either rendered and ready to go or it
     doesn't have a renderer and just holds the raw data. Renderer is either
-    our Splat class or the fits image loader."""
+    our Splat class or the fits image loader.
+    """
 
     def __init__(
         self, dataset: DataSet, renderer, buffer_size=1000, device=torch.device("cpu")
@@ -241,8 +243,10 @@ class Buffer(BaseBuffer):
 
 
 class BufferImage(BaseBuffer):
-    """This buffer requires no splat as it loads images instead of
-    rendering from an obj."""
+    """
+    This buffer requires no splat as it loads images instead of
+    rendering from an obj.
+    """
 
     def __init__(
         self,

@@ -179,7 +179,7 @@ class GradCheck(object):
             loss = F.l1_loss(output, target)
             print("Loss:", loss)
             loss.backward()
-            # print("Rotations returned:", model.get_rots())
+            # print("Rotations returned:", model.get_render_params())
 
             with torch.no_grad():
                 # print("Grads:", model.conv1.grad)
@@ -203,7 +203,7 @@ class GradCheck(object):
             # output = torch.squeeze(output.cpu()[0])
             # save_image(output, "lrp_out.jpg")
             # Now perform the LRP algorithm
-            # self._perform_check(model.get_rots(), target)
+            # self._perform_check(model.get_render_params(), target)
         with open("grad.pickle", "wb") as f:
             # Pickle the 'data' dictionary using the highest protocol available.
             pickle.dump(

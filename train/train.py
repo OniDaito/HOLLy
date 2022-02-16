@@ -219,7 +219,7 @@ def train(
                 # Watch the training rotations too!
                 if args.objpath != "" and args.save_stats:
                     S.watch(ddata.rotations, "rotations_in_train")
-                    S.watch(model.get_rots(), "rotations_out_train")
+                    S.watch(model.get_render_params(), "rotations_out_train")
 
                 print(
                     "Train Epoch: \

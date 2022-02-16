@@ -1,0 +1,13 @@
+2022-02-16  Benjamin Blundell  <benjamin.blundell@kcl.ac.uk>
+
+    * Custom image sizes now an option.
+
+    * Renderer now takes fewer options as perspective matrix isn't used.
+
+    * All steps of the data pipeline are now typed.
+
+    * Added the basics of detecting whether or not the model has stopped improving, using the ICP algorithm and numba.
+
+    * Changed the tests a little to reflect the various changes elsewhere in the program.
+
+    * Various minor improvements all over the place.

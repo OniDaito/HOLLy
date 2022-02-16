@@ -15,3 +15,4 @@ rich==10.1.0
 graphviz==0.16
 prettytable==3.0.0
 pynvml==11.4.1
+numba==0.54.1

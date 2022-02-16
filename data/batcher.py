@@ -73,6 +73,7 @@ class Batcher:
         return int(len(self.buffer) / self.batch_size)
 
     def __next__(self) -> BufferItem:
+        """ Return the 'next' BufferItem in this buffer."""
         batch = torch.zeros(
             (self.batch_size, 1, self.isize[0], self.isize[1]),
             dtype=torch.float32,

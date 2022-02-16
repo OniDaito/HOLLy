@@ -280,7 +280,7 @@ def sigma_effect_model(args, model, points, prev_args, device):
             model_image = normaliser.normalise(model_image.reshape(1, 1, 128, 128))
             loss_model = F.l1_loss(model_image, base_image, reduction="sum")
             model_image = torch.squeeze(model_image.cpu()[0])
-            model_rots = model.get_rots()
+            model_rots = model.get_render_params()
             r1 = VecRot(model_rots[0][0], model_rots[0][1], model_rots[0][2])
 
             # Rotation 0, Rotation 1, Rotation network, qdist, loss, loss network
@@ -368,7 +368,7 @@ def angle_check(args, model, points, prev_args, device):
         output = model.forward(target, points)
         output = normaliser.normalise(output.reshape(prev_args.batch_size, 1, 128, 128))
         loss = F.l1_loss(output, target, reduction="sum")
-        prots = model.get_rots().squeeze()
+        prots = model.get_render_params().squeeze()
         print("Loss:", loss.item())
         rots_in_out.append((rot, VecRot(float(prots[0][0]), float(prots[0][1]), float(prots[0][2]))))
         del target

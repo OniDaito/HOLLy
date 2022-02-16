@@ -88,18 +88,10 @@ def init(args, device):
     # points.
 
     splat_in = Splat(
-        math.radians(90),
-        1.0,
-        1.0,
-        10.0,
         device=device,
         size=(args.image_height, args.image_width),
     )
     splat_out = Splat(
-        math.radians(90),
-        1.0,
-        1.0,
-        10.0,
         device=device,
         size=(args.image_height, args.image_width),
     )

@@ -275,9 +275,9 @@ class LRP(object):
             save_image(result.clone().cpu(), path)
             target = result.reshape(1, 128, 128)
             target = self.normaliser.normalise(target.repeat(self.batch_size, 1, 1, 1))
-            R = self._perform_lrp(self.model.get_rots(), target)
+            R = self._perform_lrp(self.model.get_render_params(), target)
             B = self.model.forward(target, self.points)
-            # self._perform_lrp(self.model.get_rots(), target, scaled_points, sigma)
+            # self._perform_lrp(self.model.get_render_params(), target, scaled_points, sigma)
             # for i,l in enumerate([4,3,2,1,0]):
             #    heatmap(np.array(R[l][0]).sum(axis=0),0.5*i+1.5,0.5*i+1.5, "heatmap.png")
 

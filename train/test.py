@@ -93,7 +93,7 @@ def test(
                 args.batch_size, 1, args.image_height, args.image_width
             )
 
-            rots_out.append(model.get_rots())
+            rots_out.append(model.get_render_params())
             test_loss += calculate_loss(target_shaped, output).item()
 
             # Just save one image for now - first in the batch

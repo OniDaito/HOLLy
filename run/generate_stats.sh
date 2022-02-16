@@ -45,10 +45,6 @@ while test $# -gt 0; do
         animate=true
         shift
         ;;
-      -z|--notrans)
-        extras+=' --no-translate'
-        shift
-        ;;
       -i|--input)
         shift
 	base=$1

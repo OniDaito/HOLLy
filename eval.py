@@ -124,7 +124,7 @@ def angle_eval(args, model, points, prev_args, device):
             loss = F.l1_loss(output, target)
             output = torch.squeeze(output.cpu()[0])
             save_image(output, args.savedir + "/" + "eval_out_" + str(idx).zfill(4) + ".jpg")
-            rots = model.get_rots()
+            rots = model.get_render_params()
 
             if args.stats:
                 S.write_immediate(rots[0], "eval_rot_out", 0, 0, idx)
@@ -190,10 +190,10 @@ def basic_eval(args, model, points, prev_args, device):
     loss = F.l1_loss(output, target)
     print("Predicting Sigma:", model.predict_sigma)
     print("Loss :", loss)
-    print("Rotations returned:", model.get_rots())
+    print("Rotations returned:", model.get_render_params())
     output = torch.squeeze(output.cpu()[0])
     save_image(output, args.savedir + "/" + "eval_single_out.jpg")
-    rots = model.get_rots()
+    rots = model.get_render_params()
     print("Rots / Trans / Sigma detected: ", rots[0])
 
     # Now save the input points
