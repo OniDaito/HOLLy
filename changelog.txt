@@ -6,6 +6,10 @@
 
     * All steps of the data pipeline are now typed.
 
+    * Removed various options such as predict sigma (we always predict), no-translate (we always translate) and several others to streamline things.
+
+    * Separated out train and test functions into different files to aid organisation.
+
     * Added the basics of detecting whether or not the model has stopped improving, using the ICP algorithm and numba.
 
     * Changed the tests a little to reflect the various changes elsewhere in the program.
