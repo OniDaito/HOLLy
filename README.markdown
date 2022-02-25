@@ -53,7 +53,7 @@ If you want some fancy formatted results or if you are running the tl;dr script,
 Finally, in order to view the model the network has derived, you'll need a program capable of displaying obj or ply files. These are pretty numerous, but here are a few we use:
 
 * [meshlab](https://www.meshlab.net/)
-* [blender(https://www.blender.org/)
+* [blender](https://www.blender.org/)
 
 Chances are, if you are running a Linux distribution, you will have these already and if not, they'll be in your repository management system (like apt or pacman).
 
