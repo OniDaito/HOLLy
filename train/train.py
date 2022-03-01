@@ -161,6 +161,11 @@ def train(
     """
 
     model.train()
+    # Check if we are just using pose only
+    reductions = [args.lr / 10]
+
+    if not args.poseonly:
+        reductions.append(args.plr / 100)
 
     # Set a lower limit on the lr, with a lower one on the plr. Factor is less harsh.
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
@@ -168,7 +173,7 @@ def train(
         mode="min",
         patience=int(args.epochs / 2),
         factor=args.reduction,
-        min_lr=[args.lr / 10, args.plr / 100],
+        min_lr=reductions
     )
 
     # Which normalisation are we using?
