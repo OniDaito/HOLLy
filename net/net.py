@@ -80,7 +80,7 @@ class Net(nn.Module):
     between the output and the original simulated image.
     """
 
-    def __init__(self, splat: Splat, max_trans=0.1):
+    def __init__(self, splat: Splat, max_trans=0.1, nosigmapredict=False):
         """
         Initialise the model.
 
@@ -109,6 +109,8 @@ class Net(nn.Module):
         self.batch5 = nn.BatchNorm2d(256)
         self.batch5b = nn.BatchNorm2d(256)
         self.batch6 = nn.BatchNorm2d(256)
+
+        self._nosigmapredict = nosigmapredict
 
         # Added more conf layers as we aren't using maxpooling
         # TODO - we only have one pseudo-maxpool at the end
@@ -147,8 +149,12 @@ class Net(nn.Module):
         last_filter_size = 256
         self.fc1 = nn.Linear(csize[0] * csize[1] * last_filter_size, 256)
         num_params = 6
+      
+        if self._nosigmapredict:
+            num_params = 5
+            self.sigma = 10
+        
         self.fc2 = nn.Linear(256, num_params)
-
         self.max_shift = max_trans
         self.splat = splat
         self.device = self.splat.device
@@ -222,12 +228,13 @@ class Net(nn.Module):
         if self._lidx > len(self.layers):
             self._lidx = 0
             raise StopIteration
+
         rval = self.layers[self._lidx]
         self._lidx += 1
         return rval
 
     def to(self, device):
-        """ 
+        """
         Move the network to a different device
         """
         super(Net, self).to(device)
@@ -275,7 +282,11 @@ class Net(nn.Module):
             tx = (torch.tanh(param[3]) * 2.0) * self.max_shift
             ty = (torch.tanh(param[4]) * 2.0) * self.max_shift
             sp = nn.Softplus(threshold=12)
-            final_sigma = torch.clamp(sp(param[5]), max=14)
+            final_sigma = self.sigma
+
+            if not self._nosigmapredict:
+                final_sigma = torch.clamp(sp(param[5]), max=14)
+                
             r = VecRotTen(param[0], param[1], param[2])
             t = TransTen(tx, ty)
 

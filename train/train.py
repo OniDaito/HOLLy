@@ -130,7 +130,7 @@ def train(
     buffer_test: BaseBuffer,
     buffer_validate: BaseBuffer,
     data_loader: Loader,
-    optimiser,
+    optimiser
 ):
     """
     Now we've had some setup, lets do the actual training.
@@ -155,6 +155,7 @@ def train(
         The optimiser we want to use.
     optimiser_points : torch.optim.Optimizer
         The optimiser for the points
+
     Returns
     -------
     None
@@ -184,6 +185,10 @@ def train(
 
     sigma = sigma_lookup[0]
     data_loader.set_sigma(sigma)
+
+    if args.nosigmapredict:
+        model.sigma = sigma
+
     S.watch(optimiser.param_groups[0]["lr"], "learning_rate")
 
     # We'd like a batch rather than a similar issue.
@@ -213,6 +218,9 @@ def train(
             optimiser.step()
             sigma = cont_sigma(args, epoch, batch_idx, len(batcher), sigma_lookup)
             data_loader.set_sigma(sigma)
+            
+            if args.nosigmapredict:
+                model.sigma = sigma
 
             # We save here because we want our first step to be untrained
             # network

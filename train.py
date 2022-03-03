@@ -183,6 +183,7 @@ def init(args, device):
     model = Net(
         splat_out,
         max_trans=args.max_trans,
+        nosigmapredict=args.nosigmapredict,
     ).to(device)
 
     if args.poseonly:
@@ -383,6 +384,13 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="Only optimise the pose. Default false",
+        required=False,
+    )
+    parser.add_argument(
+        "--nosigmapredict",
+        default=False,
+        action="store_true",
+        help="Don't predict the sigma. Default false",
         required=False,
     )
     parser.add_argument(
