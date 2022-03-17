@@ -101,6 +101,7 @@ def init(args, device):
         data_loader = ImageLoader(
             size=args.train_size + args.test_size + args.valid_size,
             image_path=args.fitspath,
+            presigma=args.preblur,
             sigma=sigma_lookup[0],
         )
 
@@ -215,7 +216,6 @@ def init(args, device):
     set_train.save(args.savedir + "/train_set.pickle")
     set_test.save(args.savedir + "/test_set.pickle")
     data_loader.save(args.savedir + "/train_data.pickle")
-
     variables = []
     variables.append({"params": model.parameters(), "lr": args.lr})
 
@@ -223,7 +223,6 @@ def init(args, device):
         variables.append({"params": points.data, "lr": args.plr})
 
     optimiser = optim.AdamW(variables)
-
     print("Starting new model")
 
     # Now start the training proper
@@ -398,6 +397,13 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="Adaptive learning rate (default: False)",
+        required=False,
+    )
+    parser.add_argument(
+        "--preblur",
+        default=False,
+        action="store_true",
+        help="Have we preblurred the input images (default: False)",
         required=False,
     )
     parser.add_argument(

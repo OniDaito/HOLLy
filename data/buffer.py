@@ -24,6 +24,7 @@ from tqdm import tqdm
 from data.sets import DataSet
 from data.loader import ItemType
 from util.math import PointsTen, VecRotTen, TransTen
+from scipy.ndimage import gaussian_filter
 
 
 class BufferItem(object):
@@ -254,6 +255,8 @@ class BufferImage(BaseBuffer):
         image_size=(128, 128),
         buffer_size=1000,
         device=torch.device("cpu"),
+        blur=True,
+
     ):
         """
         Build our BufferImage - a buffer that loads images as oppose to
@@ -276,6 +279,8 @@ class BufferImage(BaseBuffer):
         """
         super().__init__(dataset, buffer_size, device)
         self.image_dim = image_size
+        self.blur = blur
+
 
     def fill(self):
         """
@@ -306,8 +311,15 @@ class BufferImage(BaseBuffer):
                 assert datum.type == ItemType.FITSIMAGE
 
                 with fits.open(datum.path) as w:
-                    hdul = w[0].data.byteswap().newbyteorder()
+                    hdul = w[0].data.byteswap().newbyteorder().astype('float32')
                     timg = torch.tensor(hdul, dtype=torch.float32, device=self.device)
+                    if len(timg.shape) == 3:
+                        timg = torch.sum(timg, 0)
+
+                    if self.blur and datum.sigma > 1.0:
+                        timg = gaussian_filter(timg.cpu(), sigma=datum.sigma)
+                        timg = torch.tensor(timg, device=self.device)
+
                     item = BufferItem(timg)
                     self.buffer.append(item)
 

@@ -31,7 +31,7 @@ class ImageLoader(Loader):
     """A class that looks for images, saving the filepaths ready for
     use with the dataset class."""
 
-    def __init__(self, size=1000, image_path=".", sigma=None):
+    def __init__(self, size=1000, image_path=".",  presigma=True, sigma=2.0):
         """
         Create our ImageLoader.
 
@@ -63,18 +63,25 @@ class ImageLoader(Loader):
         self.filenames = []
         self.deterministic = False
         self.sigma = sigma
-        self.sigmas = []
-        subdirs = [x[0] for x in os.walk(self.base_image_path)]
+        self.presigma = presigma
 
-        for s in subdirs:
-            try:
-                sigma_level = float(s)
-                self.sigmas.append(sigma_level)
-            except Exception as e:
-                print(e)
+        # Do we want pre-blurred images
+        if self.presigma:
+            self.sigmas = []
+            subdirs = [x[0] for x in os.walk(self.base_image_path)]
 
-        self.sigmas.sort()
-        self.sigmas.reverse()
+            for s in subdirs:
+                try:
+                    sigma_level = float(s)
+                    self.sigmas.append(sigma_level)
+                except Exception as e:
+                    print(e)
+
+            self.sigmas.sort()
+            self.sigmas.reverse()
+
+        print("Creating data from", self.base_image_path)
+        self.filenames = self._find_files(self.size)
         self._create_data()
 
     def _find_files(self, path, max_num):
@@ -131,15 +138,21 @@ class ImageLoader(Loader):
         -------
         self
         """
-        new_sigma = self.sigma
-        
-        for s in self.sigmas:
-            if sigma - s > 0:
-                new_sigma = s
+     
+        if self.presigma:
+            new_sigma = self.sigma
 
-        if new_sigma != self.sigma:
-            self.sigma = new_sigma
+            for s in self.sigmas:
+                if sigma - s > 0:
+                    new_sigma = s
+
+            if new_sigma != self.sigma:
+                self.sigma = new_sigma
+                self._create_data()
+        else:
+            self.sigma = sigma
             self._create_data()
+
         return self
 
     def _create_data(self):
@@ -149,9 +162,9 @@ class ImageLoader(Loader):
         Internal function.
         """
         path = self.base_image_path
+        self.data = []
 
-        if self.sigma is not None:
-
+        if self.sigma is not None and self.presigma:
             path = self.base_image_path + "/" + str(int(self.sigma)).zfill(2)
             path1 = self.base_image_path + "/" + str(int(self.sigma))
             path2 = self.base_image_path + "/" + str(self.sigma)
@@ -161,9 +174,12 @@ class ImageLoader(Loader):
             if os.path.exists(path2):
                 path = path2
 
-        print("Creating data from", path)
-        self.filenames = self._find_files(path, self.size)
-        assert len(self.filenames) == self.size
+        for name in self.filenames:
+            self.data.append(ItemImage(name, self.sigma))
+
+        # assert len(self.data) == self.size
+        self.size = len(self.data)
+
 
     def remaining(self) -> int:
         """
