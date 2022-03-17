@@ -65,6 +65,8 @@ class ImageLoader(Loader):
         self.sigma = sigma
         self.presigma = presigma
 
+        print("Creating data from", self.base_image_path)
+
         # Do we want pre-blurred images
         if self.presigma:
             self.sigmas = []
@@ -79,9 +81,7 @@ class ImageLoader(Loader):
 
             self.sigmas.sort()
             self.sigmas.reverse()
-
-        print("Creating data from", self.base_image_path)
-        self.filenames = self._find_files(self.size)
+        
         self._create_data()
 
     def _find_files(self, path, max_num):
@@ -92,7 +92,7 @@ class ImageLoader(Loader):
         maxi = 0
         idx = 0
 
-        for dirname, dirnames, filenames in os.walk(self.base_image_path):
+        for dirname, dirnames, filenames in os.walk(path):
             for i in range(len(filenames)):
                 filename = filenames[i]
                 img_extentions = ["fits", "FITS"]
@@ -174,12 +174,14 @@ class ImageLoader(Loader):
             if os.path.exists(path2):
                 path = path2
 
+        if len(self.filenames) == 0:
+            self.filenames = self._find_files(path, self.size)
+
         for name in self.filenames:
             self.data.append(ItemImage(name, self.sigma))
 
         # assert len(self.data) == self.size
         self.size = len(self.data)
-
 
     def remaining(self) -> int:
         """
