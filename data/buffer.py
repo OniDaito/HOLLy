@@ -315,8 +315,8 @@ class BufferImage(BaseBuffer):
                     if len(timg.shape) == 3:
                         timg = torch.sum(timg, 0)
 
+                    print("SS", self.blur, datum.sigma)
                     if self.blur and datum.sigma > 1.0:
-                        print("Blurring")
                         timg = gaussian_filter(timg.cpu(), sigma=datum.sigma)
                         timg = torch.tensor(timg, device=self.device)
 
