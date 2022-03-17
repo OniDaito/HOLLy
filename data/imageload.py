@@ -19,9 +19,10 @@ from data.loader import Loader, LoaderItem, ItemType
 
 
 class ItemImage(LoaderItem):
-    def __init__(self, path):
+    def __init__(self, path, sigma=1.0):
         self.type = ItemType.FITSIMAGE
         self.path = path
+        self.sigma = sigma
 
     def unpack(self):
         return self.path
