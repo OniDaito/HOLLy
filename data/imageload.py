@@ -218,7 +218,7 @@ class ImageLoader(Loader):
         return self
 
     def __getitem__(self, idx) -> LoaderItem:
-        return ItemImage(self.filenames[idx])
+        return self.data[idx]
 
     def load(self, filename: str):
         """
