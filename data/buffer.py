@@ -281,7 +281,6 @@ class BufferImage(BaseBuffer):
         self.image_dim = image_size
         self.blur = blur
 
-
     def fill(self):
         """
         Perform a fill. We go all the way through the dataset and into the
@@ -317,6 +316,7 @@ class BufferImage(BaseBuffer):
                         timg = torch.sum(timg, 0)
 
                     if self.blur and datum.sigma > 1.0:
+                        print("Blurring")
                         timg = gaussian_filter(timg.cpu(), sigma=datum.sigma)
                         timg = torch.tensor(timg, device=self.device)
 
