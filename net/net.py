@@ -282,10 +282,12 @@ class Net(nn.Module):
             tx = (torch.tanh(param[3]) * 2.0) * self.max_shift
             ty = (torch.tanh(param[4]) * 2.0) * self.max_shift
             sp = nn.Softplus(threshold=12)
-            final_sigma = self.sigma
+            final_sigma = 2.0
 
             if not self._nosigmapredict:
                 final_sigma = torch.clamp(sp(param[5]), max=14)
+            else:
+                final_sigma = self.sigma
                 
             r = VecRotTen(param[0], param[1], param[2])
             t = TransTen(tx, ty)
