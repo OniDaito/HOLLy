@@ -288,7 +288,7 @@ class Net(nn.Module):
                 final_sigma = torch.clamp(sp(param[5]), max=14)
             else:
                 final_sigma = self.sigma
-                
+
             r = VecRotTen(param[0], param[1], param[2])
             t = TransTen(tx, ty)
 
